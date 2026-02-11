@@ -17,7 +17,7 @@ export async function loadWorkflowSpec(workflowDir: string): Promise<WorkflowSpe
     throw new Error(`workflow.yml missing steps list in ${workflowDir}`);
   }
   validateAgents(parsed.agents, workflowDir);
-  // Parse type/loop from raw YAML before validation
+  // Parse type/loop/on_chain from raw YAML before validation
   for (const step of parsed.steps) {
     const rawStep = step as any;
     if (rawStep.type) {
@@ -25,6 +25,9 @@ export async function loadWorkflowSpec(workflowDir: string): Promise<WorkflowSpe
     }
     if (rawStep.loop) {
       step.loop = parseLoopConfig(rawStep.loop);
+    }
+    if (rawStep.on_chain) {
+      step.on_chain = parseOnChainConfig(rawStep.on_chain);
     }
   }
   validateSteps(parsed.steps, workflowDir);
@@ -66,6 +69,17 @@ function parseLoopConfig(raw: any): LoopConfig {
   };
 }
 
+function parseOnChainConfig(raw: any) {
+  return {
+    chain: raw.chain,
+    operation: raw.operation,
+    contract_address: raw.contract_address,
+    expected_state: raw.expected_state,
+    wait_for_confirmation: raw.wait_for_confirmation ?? true,
+    timeout_ms: raw.timeout_ms ?? 30000,
+  };
+}
+
 function validateSteps(steps: WorkflowStep[], workflowDir: string) {
   const ids = new Set<string>();
   for (const step of steps) {
@@ -103,6 +117,25 @@ function validateSteps(steps: WorkflowStep[], workflowDir: string) {
         if (!ids.has(step.loop.verifyStep)) {
           throw new Error(`workflow.yml step "${step.id}" loop.verify_step references unknown step "${step.loop.verifyStep}"`);
         }
+      }
+    }
+
+    // Validate on_chain_verify config
+    if (step.type === "on_chain_verify") {
+      if (!step.on_chain) {
+        throw new Error(`workflow.yml step "${step.id}" has type=on_chain_verify but no on_chain config`);
+      }
+      if (!step.on_chain.chain) {
+        throw new Error(`workflow.yml step "${step.id}" on_chain.chain is required`);
+      }
+      if (!["monad-testnet", "monad-mainnet"].includes(step.on_chain.chain)) {
+        throw new Error(`workflow.yml step "${step.id}" on_chain.chain must be "monad-testnet" or "monad-mainnet"`);
+      }
+      if (!step.on_chain.operation) {
+        throw new Error(`workflow.yml step "${step.id}" on_chain.operation is required`);
+      }
+      if (!["submit_tx", "read_state", "verify_event"].includes(step.on_chain.operation)) {
+        throw new Error(`workflow.yml step "${step.id}" on_chain.operation must be "submit_tx", "read_state", or "verify_event"`);
       }
     }
   }

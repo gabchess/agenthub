@@ -41,11 +41,24 @@ export type LoopConfig = {
   verifyStep?: string;
 };
 
+/**
+ * Blockchain verification configuration for on_chain_verify steps
+ */
+export type OnChainVerifyConfig = {
+  chain: "monad-testnet" | "monad-mainnet";
+  operation: "submit_tx" | "read_state" | "verify_event";
+  contract_address?: string;
+  expected_state?: Record<string, any>;
+  wait_for_confirmation?: boolean;
+  timeout_ms?: number;
+};
+
 export type WorkflowStep = {
   id: string;
   agent: string;
-  type?: "single" | "loop";
+  type?: "single" | "loop" | "on_chain_verify";
   loop?: LoopConfig;
+  on_chain?: OnChainVerifyConfig;
   input: string;
   expects: string;
   max_retries?: number;
