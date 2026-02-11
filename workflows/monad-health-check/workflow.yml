@@ -1,0 +1,115 @@
+id: monad-health-check
+name: Monad Network Health Monitor
+version: 1
+
+context:
+  purpose: Monitor Monad blockchain health and detect anomalies
+  monad_testnet_rpc: https://testnet.monad.xyz/v1
+
+agents:
+  - id: scanner
+    name: Network Scanner
+    description: Monitors Monad blockchain metrics (block height, gas prices, block times)
+    role: scanning
+    model: sonnet
+    workspace:
+      baseDir: scanner
+      files:
+        AGENTS.md: agents/scanner/AGENTS.md
+        IDENTITY.md: agents/scanner/IDENTITY.md
+        SOUL.md: agents/scanner/SOUL.md
+
+  - id: analyzer
+    name: Data Analyzer
+    description: Analyzes blockchain metrics and detects anomalies
+    role: analysis
+    model: sonnet
+    workspace:
+      baseDir: analyzer
+      files:
+        AGENTS.md: agents/analyzer/AGENTS.md
+        IDENTITY.md: agents/analyzer/IDENTITY.md
+        SOUL.md: agents/analyzer/SOUL.md
+
+  - id: reporter
+    name: Health Reporter
+    description: Generates comprehensive health reports
+    role: analysis
+    model: sonnet
+    workspace:
+      baseDir: reporter
+      files:
+        AGENTS.md: agents/reporter/AGENTS.md
+        IDENTITY.md: agents/reporter/IDENTITY.md
+        SOUL.md: agents/reporter/SOUL.md
+
+steps:
+  - id: scan
+    agent: scanner
+    type: on_chain_verify
+    on_chain:
+      chain: monad-testnet
+      operation: read_state
+      wait_for_confirmation: false
+    input: |
+      Connect to Monad testnet and gather current blockchain metrics:
+
+      1. Current block number
+      2. Current gas price (baseFeePerGas)
+      3. Recent block time (time between last 2 blocks)
+      4. Connection status
+
+      Output format:
+      BLOCK: [number]
+      GAS_PRICE: [price in gwei]
+      BLOCK_TIME: [seconds]
+      STATUS: [connected/disconnected]
+
+      Reply with STATUS: done when complete.
+    expects: "STATUS: done"
+    max_retries: 2
+
+  - id: analyze
+    agent: analyzer
+    input: |
+      Analyze the Monad network metrics from the scanner:
+
+      {{scan.output}}
+
+      Check for anomalies:
+      - Block time should be ~400ms (0.4 seconds) on Monad
+      - If block time > 1 second: flag as SLOW
+      - If block time > 5 seconds: flag as CRITICAL
+      - If gas price > 100 gwei: flag as HIGH_GAS
+      - If disconnected: flag as OFFLINE
+
+      Output format:
+      HEALTH: [HEALTHY/DEGRADED/CRITICAL]
+      ANOMALIES: [comma-separated list or NONE]
+      DETAILS: [explanation]
+
+      Reply with STATUS: done when complete.
+    expects: "STATUS: done"
+    max_retries: 2
+
+  - id: report
+    agent: reporter
+    input: |
+      Generate a comprehensive health report for Monad testnet.
+
+      Scanner data:
+      {{scan.output}}
+
+      Analysis results:
+      {{analyze.output}}
+
+      Create a markdown report with:
+      1. Executive Summary (1-2 sentences)
+      2. Key Metrics (table format)
+      3. Health Status (HEALTHY/DEGRADED/CRITICAL)
+      4. Anomalies Detected (if any)
+      5. Recommendations (if anomalies found)
+      6. Timestamp
+
+      Reply with STATUS: done followed by your report.
+    expects: "STATUS: done"
