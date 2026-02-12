@@ -1,0 +1,294 @@
+id: defi-sentinel
+name: DeFi Sentinel — Multi-Agent Threat Monitor
+version: 1
+description: |
+  Three-agent pipeline that continuously monitors Monad blockchain activity.
+  Scout detects large transactions, Analyst evaluates token price impact,
+  Guardian triggers alerts when risk thresholds are exceeded.
+
+context:
+  purpose: Real-time DeFi threat detection and alerting on Monad
+  monad_testnet_rpc: https://testnet.monad.xyz/v1
+  alert_threshold_usd: "10000"
+  price_change_alert_pct: "5"
+  whale_threshold_mon: "100"
+  watched_token: "0x1234567890123456789012345678901234567890"
+  watched_chain: "monad"
+  watched_wallet: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+
+agents:
+  - id: scout
+    name: Scout
+    description: Monitors Monad blocks for large transactions and whale activity
+    role: scanning
+    model: sonnet
+    thinking:
+      level: medium
+    guardrails:
+      toolAllowlist: ["read", "bash"]
+      maxSpendPerRun: 0
+      requireSimulation: false
+    workspace:
+      baseDir: scout
+      files:
+        AGENTS.md: agents/scout/AGENTS.md
+        IDENTITY.md: agents/scout/IDENTITY.md
+        SOUL.md: agents/scout/SOUL.md
+
+  - id: analyst
+    name: Analyst
+    description: Evaluates token price impact from detected on-chain activity
+    role: analysis
+    model: sonnet
+    thinking:
+      level: high
+    guardrails:
+      toolAllowlist: ["read", "bash", "web_fetch"]
+      maxSpendPerRun: 0
+    workspace:
+      baseDir: analyst
+      files:
+        AGENTS.md: agents/analyst/AGENTS.md
+        IDENTITY.md: agents/analyst/IDENTITY.md
+        SOUL.md: agents/analyst/SOUL.md
+
+  - id: guardian
+    name: Guardian
+    description: Triggers alerts if risk thresholds are exceeded
+    role: analysis
+    model: sonnet
+    thinking:
+      level: high
+    guardrails:
+      toolAllowlist: ["read", "bash"]
+      maxSpendPerRun: 0
+    workspace:
+      baseDir: guardian
+      files:
+        AGENTS.md: agents/guardian/AGENTS.md
+        IDENTITY.md: agents/guardian/IDENTITY.md
+        SOUL.md: agents/guardian/SOUL.md
+
+steps:
+  # Step 1: Scout reads latest blocks and wallet balances
+  - id: scan_blocks
+    agent: scout
+    type: on_chain_verify
+    on_chain:
+      chain: monad-testnet
+      operation: read_state
+      wait_for_confirmation: false
+    input: |
+      You are the Scout agent for DeFi Sentinel. Scan Monad testnet for activity.
+
+      Gather the following blockchain data:
+
+      1. Current block number and block hash
+      2. Gas price (baseFeePerGas in gwei)
+      3. Transaction count in the latest block
+      4. Block time (compare timestamps of last 2 blocks)
+
+      Look for signs of unusual activity:
+      - High transaction counts (>50 txns per block = elevated)
+      - Gas price spikes (>10 gwei = elevated for Monad)
+      - Unusually long block times (>1 second = concern)
+
+      Output format:
+      BLOCK_NUMBER: [number]
+      BLOCK_HASH: [hash]
+      GAS_PRICE_GWEI: [price]
+      TX_COUNT: [count]
+      BLOCK_TIME_MS: [milliseconds]
+      ACTIVITY_LEVEL: [NORMAL/ELEVATED/HIGH]
+      ANOMALIES: [comma-separated list or NONE]
+
+      STATUS: done
+    expects: "STATUS: done"
+    max_retries: 2
+
+  # Step 2: Scout checks wallet balance for whale monitoring
+  - id: scan_wallets
+    agent: scout
+    type: on_chain_verify
+    on_chain:
+      chain: monad-testnet
+      operation: wallet_balance
+      tool_params:
+        addresses:
+          - "{{watched_wallet}}"
+    input: |
+      Check the watched wallet for large balance changes.
+
+      Wallet: {{watched_wallet}}
+      Whale threshold: {{whale_threshold_mon}} MON
+
+      Previous scan data:
+      {{scan_blocks.output}}
+
+      Report the current balance and flag if it exceeds the whale threshold.
+
+      Output format:
+      WALLET: {{watched_wallet}}
+      BALANCE_MON: [value]
+      BALANCE_WEI: [value]
+      BLOCK_NUMBER: [block at time of check]
+      WHALE_FLAG: [YES/NO]
+      WHALE_DETAIL: [explanation if flagged, or NONE]
+
+      STATUS: done
+    expects: "STATUS: done"
+    max_retries: 2
+
+  # Step 3: Analyst evaluates token price
+  - id: analyze_price
+    agent: analyst
+    type: on_chain_verify
+    on_chain:
+      chain: monad-testnet
+      operation: token_price
+      tool_params:
+        tokens:
+          - chainId: "{{watched_chain}}"
+            address: "{{watched_token}}"
+        includeHistory: false
+    input: |
+      You are the Analyst agent for DeFi Sentinel. Evaluate the market impact.
+
+      On-chain scan results:
+      {{scan_blocks.output}}
+
+      Wallet scan results:
+      {{scan_wallets.output}}
+
+      Now analyze the token price data for {{watched_token}} on {{watched_chain}}.
+
+      Evaluate:
+      1. Current USD price
+      2. 24h price change percentage
+      3. 24h trading volume
+      4. Available liquidity
+      5. Whether activity level correlates with price movement
+      6. Risk of price manipulation (low liquidity + high activity = risk)
+
+      Alert threshold: {{price_change_alert_pct}}% price change
+
+      Output format:
+      TOKEN: {{watched_token}}
+      PRICE_USD: [value]
+      CHANGE_24H_PCT: [value]
+      VOLUME_24H: [value]
+      LIQUIDITY_USD: [value]
+      PRICE_ALERT: [YES/NO]
+      MANIPULATION_RISK: [LOW/MEDIUM/HIGH]
+      RISK_FACTORS: [comma-separated list or NONE]
+      ANALYSIS: [1-2 sentence summary]
+
+      STATUS: done
+    expects: "STATUS: done"
+    max_retries: 2
+
+  # Step 4: Analyst reads token contract state
+  - id: analyze_contract
+    agent: analyst
+    type: on_chain_verify
+    on_chain:
+      chain: monad-testnet
+      operation: contract_read
+      tool_params:
+        contractAddress: "{{watched_token}}"
+        method: "totalSupply"
+        args: []
+    input: |
+      Read the on-chain state of the watched token contract.
+
+      Token contract: {{watched_token}}
+
+      Previous analysis:
+      {{analyze_price.output}}
+
+      Read the totalSupply to check for any supply-related anomalies
+      (minting events, burns, etc.). Compare with expected values.
+
+      Output format:
+      CONTRACT: {{watched_token}}
+      TOTAL_SUPPLY: [decoded value]
+      SUPPLY_ANOMALY: [YES/NO]
+      SUPPLY_DETAIL: [explanation or NONE]
+
+      STATUS: done
+    expects: "STATUS: done"
+    max_retries: 2
+
+  # Step 5: Guardian evaluates all data and triggers alerts
+  - id: threat_assessment
+    agent: guardian
+    type: single
+    input: |
+      You are the Guardian agent for DeFi Sentinel. This is your threat assessment.
+
+      Compile all intelligence gathered by Scout and Analyst:
+
+      === BLOCK SCAN ===
+      {{scan_blocks.output}}
+
+      === WALLET SCAN ===
+      {{scan_wallets.output}}
+
+      === PRICE ANALYSIS ===
+      {{analyze_price.output}}
+
+      === CONTRACT STATE ===
+      {{analyze_contract.output}}
+
+      === THRESHOLDS ===
+      Alert threshold (USD): ${{alert_threshold_usd}}
+      Price change alert: {{price_change_alert_pct}}%
+      Whale threshold: {{whale_threshold_mon}} MON
+
+      === YOUR TASK ===
+
+      1. Synthesize all data sources into a unified threat picture
+      2. Assign a THREAT_LEVEL (GREEN/YELLOW/ORANGE/RED):
+         - GREEN: All normal, no concerns
+         - YELLOW: Elevated activity, worth watching
+         - ORANGE: Active risk indicators, recommend precaution
+         - RED: Immediate threat detected, action required
+      3. List any triggered alerts with severity
+      4. Provide actionable recommendations
+
+      Output format:
+      ╔══════════════════════════════════════╗
+      ║     DEFI SENTINEL THREAT REPORT      ║
+      ╚══════════════════════════════════════╝
+
+      TIMESTAMP: [ISO timestamp]
+      THREAT_LEVEL: [GREEN/YELLOW/ORANGE/RED]
+
+      NETWORK STATUS:
+        Block: [number] | Gas: [gwei] | TPS: [estimate]
+        Activity: [NORMAL/ELEVATED/HIGH]
+
+      WALLET MONITOR:
+        Address: [truncated address]
+        Balance: [value] MON
+        Whale Alert: [YES/NO]
+
+      MARKET STATUS:
+        Token: [address]
+        Price: $[value] | 24h Change: [pct]%
+        Volume: $[value] | Liquidity: $[value]
+        Manipulation Risk: [LOW/MEDIUM/HIGH]
+
+      CONTRACT STATE:
+        Supply: [value]
+        Anomaly: [YES/NO]
+
+      ALERTS TRIGGERED: [count]
+      [List each alert with severity]
+
+      RECOMMENDATIONS:
+      [Numbered list of actionable recommendations]
+
+      STATUS: done
+    expects: "STATUS: done"
+    max_retries: 2
