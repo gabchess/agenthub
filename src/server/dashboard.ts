@@ -9,6 +9,16 @@ import YAML from "yaml";
 import type { RunInfo, StepInfo } from "../installer/status.js";
 import { getRunEvents } from "../installer/events.js";
 
+import {
+  getAllPipelineStatus,
+  getRecentBlockMetrics,
+  getRecentPriceSnapshots,
+  getRecentBalanceSnapshots,
+  getRecentContractEvents,
+  migratePipelineTables,
+} from "../pipeline/db-pipeline.js";
+import { SSEBroadcaster } from "../pipeline/sse-broadcaster.js";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 interface WorkflowDef {
@@ -69,10 +79,84 @@ function serveHTML(res: http.ServerResponse) {
   res.end(fs.readFileSync(filePath, "utf-8"));
 }
 
+// Shared SSE broadcaster for pipeline events
+let _sseBroadcaster: SSEBroadcaster | null = null;
+
+export function getDashboardBroadcaster(): SSEBroadcaster {
+  if (!_sseBroadcaster) {
+    _sseBroadcaster = new SSEBroadcaster();
+    _sseBroadcaster.start();
+  }
+  return _sseBroadcaster;
+}
+
 export function startDashboard(port = 3333): http.Server {
+  // Ensure pipeline tables exist
+  try { migratePipelineTables(); } catch { /* tables may already exist */ }
+
+  const broadcaster = getDashboardBroadcaster();
+
   const server = http.createServer((req, res) => {
     const url = new URL(req.url ?? "/", `http://localhost:${port}`);
     const p = url.pathname;
+
+    // --- Pipeline API routes ---
+
+    if (p === "/api/pipeline/status") {
+      try {
+        return json(res, getAllPipelineStatus());
+      } catch {
+        return json(res, []);
+      }
+    }
+
+    if (p === "/api/pipeline/blocks") {
+      try {
+        const limit = parseInt(url.searchParams.get("limit") ?? "50", 10);
+        return json(res, getRecentBlockMetrics(limit));
+      } catch {
+        return json(res, []);
+      }
+    }
+
+    if (p === "/api/pipeline/prices") {
+      try {
+        const token = url.searchParams.get("token") ?? undefined;
+        const chain = url.searchParams.get("chain") ?? undefined;
+        const limit = parseInt(url.searchParams.get("limit") ?? "100", 10);
+        return json(res, getRecentPriceSnapshots(token, chain, limit));
+      } catch {
+        return json(res, []);
+      }
+    }
+
+    if (p === "/api/pipeline/balances") {
+      try {
+        const address = url.searchParams.get("address") ?? undefined;
+        const limit = parseInt(url.searchParams.get("limit") ?? "50", 10);
+        return json(res, getRecentBalanceSnapshots(address, limit));
+      } catch {
+        return json(res, []);
+      }
+    }
+
+    if (p === "/api/pipeline/contracts") {
+      try {
+        const address = url.searchParams.get("address") ?? undefined;
+        const method = url.searchParams.get("method") ?? undefined;
+        const limit = parseInt(url.searchParams.get("limit") ?? "50", 10);
+        return json(res, getRecentContractEvents(address, method, limit));
+      } catch {
+        return json(res, []);
+      }
+    }
+
+    if (p === "/api/pipeline/stream") {
+      broadcaster.addClient(res);
+      return;
+    }
+
+    // --- Existing routes ---
 
     if (p === "/api/workflows") {
       return json(res, loadWorkflows());
