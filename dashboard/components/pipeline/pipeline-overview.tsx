@@ -1,6 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
+import { API_BASE } from "@/lib/api";
 import { usePipelineStatus } from "@/lib/hooks/use-pipeline-status";
 import { useBlockMetrics } from "@/lib/hooks/use-block-metrics";
 import { usePriceSnapshots } from "@/lib/hooks/use-price-snapshots";
@@ -17,7 +18,7 @@ export function PipelineOverview() {
   const { blocks } = useBlockMetrics();
   const { prices } = usePriceSnapshots();
   const { balances } = useBalanceSnapshots();
-  const { status: sseStatus } = useSSE("http://localhost:3333/api/pipeline/stream");
+  const { status: sseStatus } = useSSE(`${API_BASE}/api/pipeline/stream`);
 
   return (
     <div className="space-y-6">

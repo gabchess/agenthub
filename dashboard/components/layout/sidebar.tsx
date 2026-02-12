@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
+import { API_BASE } from "@/lib/api";
 import { NAV_ITEMS } from "@/lib/constants";
 
 const icons: Record<string, React.ReactNode> = {
@@ -72,7 +73,7 @@ export function Sidebar() {
       <div className="p-4 border-t border-border">
         <div className="flex items-center gap-2 text-xs text-gray-600">
           <span className="w-2 h-2 rounded-full bg-accent-green animate-pulse" />
-          <span>API: localhost:3333</span>
+          <span>API: {API_BASE.replace(/^https?:\/\//, '')}</span>
         </div>
       </div>
     </aside>
