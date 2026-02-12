@@ -56,6 +56,24 @@ function validateAgents(agents: WorkflowAgent[], workflowDir: string) {
     if (agent.timeoutSeconds !== undefined && agent.timeoutSeconds <= 0) {
       throw new Error(`workflow.yml agent "${agent.id}" timeoutSeconds must be positive`);
     }
+
+    // Validate thinking config
+    if (agent.thinking?.level && !['low', 'medium', 'high'].includes(agent.thinking.level)) {
+      throw new Error(`Invalid thinking level for agent ${agent.id}: ${agent.thinking.level}. Must be "low", "medium", or "high"`);
+    }
+
+    // Validate guardrails config
+    if (agent.guardrails) {
+      if (agent.guardrails.maxSpendPerTx !== undefined && agent.guardrails.maxSpendPerTx < 0) {
+        throw new Error(`Invalid maxSpendPerTx for agent ${agent.id}: must be >= 0`);
+      }
+      if (agent.guardrails.maxSpendPerRun !== undefined && agent.guardrails.maxSpendPerRun < 0) {
+        throw new Error(`Invalid maxSpendPerRun for agent ${agent.id}: must be >= 0`);
+      }
+      if (agent.guardrails.approvalThreshold !== undefined && agent.guardrails.approvalThreshold < 0) {
+        throw new Error(`Invalid approvalThreshold for agent ${agent.id}: must be >= 0`);
+      }
+    }
   }
 }
 
@@ -98,6 +116,19 @@ function validateSteps(steps: WorkflowStep[], workflowDir: string) {
     }
     if (!step.expects?.trim()) {
       throw new Error(`workflow.yml missing step.expects for step "${step.id}"`);
+    }
+
+    // Validate parallel config
+    if (step.parallel?.group && typeof step.parallel.group !== 'string') {
+      throw new Error(`Invalid parallel.group for step ${step.id}: must be a string`);
+    }
+    if (step.parallel?.group && step.parallel.group.trim().length === 0) {
+      throw new Error(`Invalid parallel.group for step ${step.id}: cannot be empty`);
+    }
+
+    // Validate thinking config
+    if (step.thinking?.level && !['low', 'medium', 'high'].includes(step.thinking.level)) {
+      throw new Error(`Invalid thinking level for step ${step.id}: ${step.thinking.level}. Must be "low", "medium", or "high"`);
     }
   }
 

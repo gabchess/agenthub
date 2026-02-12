@@ -102,3 +102,82 @@ export interface BlockchainClient {
   submitParallelTransactions: (batch: TxBatch) => Promise<Hash[]>;
   waitForReceipt: (txHash: Hash) => Promise<TxReceipt>;
 }
+
+/**
+ * Generic tool result wrapper with error handling and metadata
+ */
+export interface ToolResult<T = any> {
+  ok: boolean;
+  result?: T;
+  error?: { code: string; message: string; details?: any };
+  cached?: boolean;
+  timestamp: string;
+}
+
+/**
+ * Parameters for wallet balance queries
+ */
+export interface WalletBalanceParams {
+  addresses: Address[];
+  chain?: 'monad-testnet' | 'monad-mainnet';
+}
+
+/**
+ * Result of wallet balance queries
+ */
+export interface WalletBalanceResult {
+  balances: Array<{
+    address: Address;
+    balance: string;
+    balanceWei: string;
+    blockNumber: string;
+  }>;
+}
+
+/**
+ * Parameters for token price queries
+ */
+export interface TokenPriceParams {
+  tokens: Array<{ chainId: string; address: Address }>;
+  includeHistory?: boolean;
+  historyHours?: number;
+}
+
+/**
+ * Result of token price queries
+ */
+export interface TokenPriceResult {
+  prices: Array<{
+    chainId: string;
+    address: Address;
+    priceUsd: string;
+    priceNative: string;
+    volume24h: string;
+    liquidity: string;
+    priceChange24h: string;
+    lastUpdated: string;
+    history?: Array<{ timestamp: string; priceUsd: string }>;
+  }>;
+}
+
+/**
+ * Parameters for contract read operations
+ */
+export interface ContractReadParams {
+  chain?: 'monad-testnet' | 'monad-mainnet';
+  contractAddress: Address;
+  abi?: any[];
+  method?: string;
+  args?: any[];
+  data?: `0x${string}`;
+}
+
+/**
+ * Result of contract read operations
+ */
+export interface ContractReadResult {
+  value: any;
+  decoded?: any;
+  blockNumber: string;
+  raw: `0x${string}`;
+}

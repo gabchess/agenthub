@@ -11,6 +11,10 @@
 import type { OnChainVerifyConfig } from '../installer/types.js';
 import { MonadClient } from './monad.js';
 import type { Hash, Address } from 'viem';
+import { getWalletBalances, parseBalanceOutput } from './tools/wallet-balance.js';
+import { getTokenPrices, parseTokenQuery } from './tools/token-price.js';
+import { readContract, parseContractReadQuery } from './tools/contract-read.js';
+import { getGlobalCache } from './tools/cache.js';
 
 export interface OnChainExecutionResult {
   success: boolean;
@@ -43,6 +47,69 @@ export async function executeOnChainStep(
 
       case 'verify_event':
         return await verifyEvent(client, config, agentOutput);
+
+      case 'wallet_balance': {
+        const addresses = config.tool_params?.addresses || parseBalanceOutput(agentOutput);
+        const result = await getWalletBalances(
+          { addresses, chain: config.chain },
+          getGlobalCache()
+        );
+
+        if (!result.ok) {
+          return {
+            success: false,
+            error: result.error?.message || 'Unknown error',
+          };
+        }
+
+        return {
+          success: true,
+          actualState: result.result,
+          details: `Retrieved balances for ${addresses.length} address(es)`,
+        };
+      }
+
+      case 'token_price': {
+        const tokens = config.tool_params?.tokens || parseTokenQuery(agentOutput);
+        const result = await getTokenPrices(
+          { tokens, includeHistory: config.tool_params?.includeHistory },
+          getGlobalCache()
+        );
+
+        if (!result.success) {
+          return {
+            success: false,
+            error: result.error || 'Unknown error',
+          };
+        }
+
+        return {
+          success: true,
+          actualState: result.data,
+          details: `Retrieved prices for ${tokens.length} token(s)`,
+        };
+      }
+
+      case 'contract_read': {
+        const params = config.tool_params || parseContractReadQuery(agentOutput);
+        const result = await readContract(
+          { ...params, chain: config.chain },
+          getGlobalCache()
+        );
+
+        if (!result.success) {
+          return {
+            success: false,
+            error: result.error || 'Unknown error',
+          };
+        }
+
+        return {
+          success: true,
+          actualState: result.data,
+          details: `Read contract at ${params.contractAddress}`,
+        };
+      }
 
       default:
         return {

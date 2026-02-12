@@ -67,6 +67,48 @@ function migrate(db: DatabaseSync): void {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS execution_traces (
+      id TEXT PRIMARY KEY,
+      run_id TEXT NOT NULL,
+      step_id TEXT,
+      agent_id TEXT,
+      trace_type TEXT NOT NULL,
+      timestamp TEXT NOT NULL,
+      duration_ms INTEGER,
+      input_tokens INTEGER,
+      output_tokens INTEGER,
+      model TEXT,
+      extended_thinking_used BOOLEAN,
+      data TEXT,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS agent_guardrails (
+      id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL UNIQUE,
+      tool_allowlist TEXT,
+      tool_denylist TEXT,
+      max_spend_per_tx TEXT,
+      max_spend_per_run TEXT,
+      approval_threshold TEXT,
+      require_simulation BOOLEAN,
+      parallel_allowed BOOLEAN,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS agent_state (
+      id TEXT PRIMARY KEY,
+      run_id TEXT NOT NULL,
+      agent_id TEXT NOT NULL,
+      namespace TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(run_id, agent_id, namespace, key)
+    );
   `);
 
   // Add columns to steps table for backwards compat
@@ -82,6 +124,21 @@ function migrate(db: DatabaseSync): void {
   if (!colNames.has("current_story_id")) {
     db.exec("ALTER TABLE steps ADD COLUMN current_story_id TEXT");
   }
+  if (!colNames.has("thinking_level")) {
+    db.exec("ALTER TABLE steps ADD COLUMN thinking_level TEXT");
+  }
+  if (!colNames.has("token_budget")) {
+    db.exec("ALTER TABLE steps ADD COLUMN token_budget INTEGER");
+  }
+  if (!colNames.has("extended_thinking")) {
+    db.exec("ALTER TABLE steps ADD COLUMN extended_thinking BOOLEAN");
+  }
+  if (!colNames.has("parallel_group")) {
+    db.exec("ALTER TABLE steps ADD COLUMN parallel_group TEXT");
+  }
+  if (!colNames.has("parallel_sequence")) {
+    db.exec("ALTER TABLE steps ADD COLUMN parallel_sequence INTEGER");
+  }
 
   // Add columns to runs table for backwards compat
   const runCols = db.prepare("PRAGMA table_info(runs)").all() as Array<{ name: string }>;
@@ -89,6 +146,26 @@ function migrate(db: DatabaseSync): void {
   if (!runColNames.has("notify_url")) {
     db.exec("ALTER TABLE runs ADD COLUMN notify_url TEXT");
   }
+  if (!runColNames.has("parallel_execution_enabled")) {
+    db.exec("ALTER TABLE runs ADD COLUMN parallel_execution_enabled BOOLEAN");
+  }
+  if (!runColNames.has("max_parallel_agents")) {
+    db.exec("ALTER TABLE runs ADD COLUMN max_parallel_agents INTEGER");
+  }
+
+  // Create indexes for execution_traces table
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_traces_run_id ON execution_traces(run_id);
+    CREATE INDEX IF NOT EXISTS idx_traces_step_id ON execution_traces(step_id);
+    CREATE INDEX IF NOT EXISTS idx_traces_timestamp ON execution_traces(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_traces_agent_id ON execution_traces(agent_id);
+  `);
+
+  // Create indexes for agent_state table
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_agent_state_run ON agent_state(run_id);
+    CREATE INDEX IF NOT EXISTS idx_agent_state_namespace ON agent_state(namespace);
+  `);
 }
 
 export function getDbPath(): string {

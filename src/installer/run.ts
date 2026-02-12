@@ -5,6 +5,7 @@ import { getDb } from "../db.js";
 import { logger } from "../lib/logger.js";
 import { ensureWorkflowCrons } from "./agent-cron.js";
 import { emitEvent } from "./events.js";
+import { getStateFsManager } from '../lib/state-fs.js';
 
 export async function runWorkflow(params: {
   workflowId: string;
@@ -49,6 +50,23 @@ export async function runWorkflow(params: {
   } catch (err) {
     db.exec("ROLLBACK");
     throw err;
+  }
+
+  // Initialize state filesystem
+  try {
+    const stateFsManager = getStateFsManager(runId, workflow.id);
+    await stateFsManager.initializeDirectories();
+
+    // Create agent namespaces
+    for (const agent of workflow.agents) {
+      await stateFsManager.createAgentNamespace(agent.id);
+    }
+  } catch (err) {
+    // Roll back the run since state filesystem initialization failed
+    const db2 = getDb();
+    db2.prepare("UPDATE runs SET status = 'failed', updated_at = ? WHERE id = ?").run(new Date().toISOString(), runId);
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Cannot start workflow run: state filesystem initialization failed. ${message}`);
   }
 
   // Start crons for this workflow (no-op if already running from another run)

@@ -1,0 +1,100 @@
+id: token-monitor
+name: Token Price Monitor
+version: 1
+
+context:
+  token_address: "0x1234567890123456789012345678901234567890"
+  chain_id: "monad"
+  wallet_address: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+
+agents:
+  - id: monitor
+    name: Price Monitor
+    description: Monitors token prices and wallet balances
+    role: scanning
+    model: sonnet
+    thinking:
+      level: medium
+    guardrails:
+      toolAllowlist: ["read", "bash", "web_search", "web_fetch"]
+      maxSpendPerRun: 0
+    workspace:
+      baseDir: monitor
+      files:
+        IDENTITY.md: agents/monitor/IDENTITY.md
+        SOUL.md: agents/monitor/SOUL.md
+
+steps:
+  - id: check_balance
+    agent: monitor
+    type: on_chain_verify
+    on_chain:
+      chain: monad-testnet
+      operation: wallet_balance
+      tool_params:
+        addresses:
+          - "{{wallet_address}}"
+    input: |
+      Check the wallet balance for monitoring bot.
+      Wallet: {{wallet_address}}
+
+      Output in format:
+      BALANCE: [value]
+      STATUS: done
+    expects: "STATUS: done"
+
+  - id: fetch_price
+    agent: monitor
+    type: on_chain_verify
+    on_chain:
+      chain: monad-testnet
+      operation: token_price
+      tool_params:
+        tokens:
+          - chainId: "{{chain_id}}"
+            address: "{{token_address}}"
+        includeHistory: false
+    input: |
+      Fetch current price for token {{token_address}} on {{chain_id}}.
+
+      Analyze the price data and output:
+      PRICE_USD: [value]
+      VOLUME_24H: [value]
+      LIQUIDITY: [value]
+      STATUS: done
+    expects: "STATUS: done"
+
+  - id: check_supply
+    agent: monitor
+    type: on_chain_verify
+    on_chain:
+      chain: monad-testnet
+      operation: contract_read
+      tool_params:
+        contractAddress: "{{token_address}}"
+        method: "totalSupply"
+        args: []
+    input: |
+      Read total supply of token {{token_address}}.
+
+      This will use the ERC20 totalSupply method to check the token's total supply.
+
+      Output:
+      TOTAL_SUPPLY: [decoded value]
+      STATUS: done
+    expects: "STATUS: done"
+
+  - id: report
+    agent: monitor
+    type: single
+    input: |
+      Generate a monitoring report based on:
+
+      Balance: {{check_balance.output}}
+      Price: {{fetch_price.output}}
+      Supply: {{check_supply.output}}
+
+      Create a summary report and output:
+      REPORT: [your report]
+      STATUS: done
+    expects: "STATUS: done"

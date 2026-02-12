@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { execFile } from "node:child_process";
+import { invokeChainTool } from '../chains/tools/index.js';
 
 interface GatewayConfig {
   url: string;
@@ -83,6 +84,63 @@ function runCli(args: string[]): Promise<string> {
 
 const UPDATE_HINT =
   `This may be fixed by updating OpenClaw: npm update -g openclaw`;
+
+// ---------------------------------------------------------------------------
+// Tool invocation — Route chain tools locally, delegate others to gateway
+// ---------------------------------------------------------------------------
+
+/**
+ * Invokes a tool, routing chain tools locally and delegating others to gateway.
+ *
+ * @param requestBody - Tool invocation request with tool name, args, and sessionKey
+ * @returns Tool execution result
+ */
+export async function invokeTool(requestBody: {
+  tool: string;
+  args: any;
+  sessionKey?: string;
+}): Promise<{ ok: boolean; result?: any; error?: any }> {
+  // Handle chain tools locally
+  if (['wallet_balance', 'token_price', 'contract_read'].includes(requestBody.tool)) {
+    const chainToolResult = await invokeChainTool({
+      tool: requestBody.tool as any,
+      args: requestBody.args,
+      sessionKey: requestBody.sessionKey,
+    });
+
+    return {
+      ok: chainToolResult.ok,
+      result: chainToolResult.result,
+      error: chainToolResult.error,
+    };
+  }
+
+  // Delegate other tools to gateway API
+  const gateway = await getGatewayConfig();
+  try {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (gateway.token) headers["Authorization"] = `Bearer ${gateway.token}`;
+
+    const response = await fetch(`${gateway.url}/tools/invoke`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      return { ok: false, error: `Gateway returned ${response.status}: ${text}` };
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Cron operations — HTTP first, CLI fallback

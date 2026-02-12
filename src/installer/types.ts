@@ -1,3 +1,43 @@
+export type ThinkingLevel = "low" | "medium" | "high";
+
+export interface ThinkingConfig {
+  level: ThinkingLevel;
+  extendedThinking?: boolean;
+  tokenBudget?: number;
+}
+
+export interface GuardrailConfig {
+  toolAllowlist?: string[];
+  toolDenylist?: string[];
+  maxSpendPerTx?: number;
+  maxSpendPerRun?: number;
+  approvalThreshold?: number;
+  requireSimulation?: boolean;
+  parallelAllowed?: boolean;
+}
+
+export interface ParallelConfig {
+  group: string;
+  sequence?: number;
+  maxConcurrency?: number;
+}
+
+export interface RoleCard {
+  domain?: string;
+  inputs?: string[];
+  outputs?: string[];
+  definitionOfDone?: string;
+  hardBans?: string[];
+  escalation?: string;
+  metrics?: string[];
+}
+
+export interface WalletConfig {
+  enabled: boolean;
+  address?: string;
+  maxBalance?: number;
+}
+
 export type WorkflowAgentFiles = {
   baseDir: string;
   files: Record<string, string>;
@@ -24,6 +64,10 @@ export type WorkflowAgent = {
   model?: string;
   timeoutSeconds?: number;
   workspace: WorkflowAgentFiles;
+  thinking?: ThinkingConfig;
+  guardrails?: GuardrailConfig;
+  wallet?: WalletConfig;
+  roleCard?: RoleCard;
 };
 
 export type WorkflowStepFailure = {
@@ -46,11 +90,12 @@ export type LoopConfig = {
  */
 export type OnChainVerifyConfig = {
   chain: "monad-testnet" | "monad-mainnet";
-  operation: "submit_tx" | "read_state" | "verify_event";
+  operation: "submit_tx" | "read_state" | "verify_event" | "wallet_balance" | "token_price" | "contract_read";
   contract_address?: string;
   expected_state?: Record<string, any>;
   wait_for_confirmation?: boolean;
   timeout_ms?: number;
+  tool_params?: any;
 };
 
 export type WorkflowStep = {
@@ -63,6 +108,8 @@ export type WorkflowStep = {
   expects: string;
   max_retries?: number;
   on_fail?: WorkflowStepFailure;
+  parallel?: ParallelConfig;
+  thinking?: ThinkingConfig;
 };
 
 export type Story = {
@@ -88,6 +135,14 @@ export type WorkflowSpec = {
   context?: Record<string, string>;
   notifications?: {
     url?: string;
+  };
+  parallel?: {
+    enabled: boolean;
+    maxConcurrentAgents?: number;
+  };
+  filesystem?: {
+    enabled: boolean;
+    basePath?: string;
   };
 };
 

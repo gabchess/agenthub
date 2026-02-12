@@ -1,18 +1,29 @@
 import { createAgentCronJob, deleteAgentCronJobs, listCronJobs, checkCronToolAvailable } from "./gateway-api.js";
-import type { WorkflowSpec } from "./types.js";
+import type { WorkflowSpec, WorkflowAgent } from "./types.js";
 import { resolveAntfarmCli } from "./paths.js";
 import { getDb } from "../db.js";
+import { mapThinkingLevel, getDefaultThinkingConfig } from '../lib/thinking-mapper.js';
 
 const DEFAULT_EVERY_MS = 300_000; // 5 minutes
 const DEFAULT_AGENT_TIMEOUT_SECONDS = 30 * 60; // 30 minutes
 
-function buildAgentPrompt(workflowId: string, agentId: string): string {
-  const fullAgentId = `${workflowId}/${agentId}`;
+function buildAgentPrompt(workflowId: string, agent: WorkflowAgent): string {
+  const fullAgentId = `${workflowId}/${agent.id}`;
   const cli = resolveAntfarmCli();
+
+  // Get thinking configuration
+  const thinkingConfig = agent.thinking || getDefaultThinkingConfig();
+  const modelParams = mapThinkingLevel(thinkingConfig);
 
   return `You are an Antfarm workflow agent. Check for pending work and execute it.
 
 ⚠️ CRITICAL: You MUST call "step complete" or "step fail" before ending your session. If you don't, the workflow will be stuck forever. This is non-negotiable.
+
+Thinking mode: ${thinkingConfig.level}
+Token budget: ${modelParams.tokenBudget}
+${modelParams.extendedThinking ? 'Extended thinking enabled.' : ''}
+
+State filesystem: ~/.openclaw/antfarm/state/\${runId}/agents/${agent.id}/
 
 Step 1 — Check for pending work:
 \`\`\`
@@ -59,7 +70,7 @@ export async function setupAgentCrons(workflow: WorkflowSpec): Promise<void> {
     const anchorMs = i * 60_000; // stagger by 1 minute each
     const cronName = `antfarm/${workflow.id}/${agent.id}`;
     const agentId = `${workflow.id}/${agent.id}`;
-    const prompt = buildAgentPrompt(workflow.id, agent.id);
+    const prompt = buildAgentPrompt(workflow.id, agent);
     const timeoutSeconds = agent.timeoutSeconds ?? DEFAULT_AGENT_TIMEOUT_SECONDS;
 
     const result = await createAgentCronJob({

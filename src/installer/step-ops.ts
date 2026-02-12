@@ -7,6 +7,9 @@ import crypto from "node:crypto";
 import { teardownWorkflowCronsIfIdle } from "./agent-cron.js";
 import { emitEvent } from "./events.js";
 import { logger } from "../lib/logger.js";
+import { traceStepClaim, traceStepComplete, traceStepFail } from '../lib/tracer.js';
+import { getParallelStepForAgent, canClaimParallelStep, claimParallelStep } from './parallel-executor.js';
+import { loadAgentGuardrails, checkToolAllowed } from './guardrails.js';
 
 /**
  * Fire-and-forget cron teardown when a run ends.
@@ -296,6 +299,15 @@ export function claimStep(agentId: string): ClaimResult {
   cleanupAbandonedSteps();
   const db = getDb();
 
+  // Check for parallel execution steps first
+  const parallelStep = getParallelStepForAgent(agentId);
+  if (parallelStep && canClaimParallelStep(parallelStep.stepId)) {
+    if (claimParallelStep(parallelStep.stepId)) {
+      traceStepClaim(parallelStep.runId, parallelStep.stepId, agentId, parallelStep.input);
+      return { found: true, stepId: parallelStep.stepId, runId: parallelStep.runId, resolvedInput: parallelStep.input };
+    }
+  }
+
   const step = db.prepare(
     `SELECT s.id, s.run_id, s.input_template, s.type, s.loop_config
      FROM steps s
@@ -384,6 +396,7 @@ export function claimStep(agentId: string): ClaimResult {
       db.prepare("UPDATE runs SET context = ?, updated_at = datetime('now') WHERE id = ?").run(JSON.stringify(context), step.run_id);
 
       const resolvedInput = resolveTemplate(step.input_template, context);
+      traceStepClaim(step.run_id, step.id, agentId, resolvedInput);
       return { found: true, stepId: step.id, runId: step.run_id, resolvedInput };
     }
   }
@@ -404,6 +417,7 @@ export function claimStep(agentId: string): ClaimResult {
   }
 
   const resolvedInput = resolveTemplate(step.input_template, context);
+  traceStepClaim(step.run_id, step.id, agentId, resolvedInput);
 
   return {
     found: true,
@@ -504,6 +518,12 @@ export function completeStep(stepId: string, output: string): { advanced: boolea
   db.prepare(
     "UPDATE steps SET status = 'done', output = ?, updated_at = datetime('now') WHERE id = ?"
   ).run(output, stepId);
+
+  // Get step created_at for duration calculation
+  const stepRecord = db.prepare("SELECT created_at FROM steps WHERE id = ?").get(stepId) as { created_at: string } | undefined;
+  const duration = stepRecord ? Date.now() - new Date(stepRecord.created_at).getTime() : 0;
+  traceStepComplete(step.run_id, stepId, output, duration);
+
   emitEvent({ ts: new Date().toISOString(), event: "step.done", runId: step.run_id, workflowId: getWorkflowId(step.run_id), stepId: step.id });
   logger.info(`Step completed: ${step.step_id}`, { runId: step.run_id, stepId: step.id });
 
@@ -737,6 +757,10 @@ export function failStep(stepId: string, error: string): { retrying: boolean; ru
   // Single step: existing logic
   const newRetryCount = step.retry_count + 1;
 
+  // Get step created_at for duration calculation
+  const stepRecord = db.prepare("SELECT created_at FROM steps WHERE id = ?").get(stepId) as { created_at: string } | undefined;
+  const duration = stepRecord ? Date.now() - new Date(stepRecord.created_at).getTime() : 0;
+
   if (newRetryCount > step.max_retries) {
     db.prepare(
       "UPDATE steps SET status = 'failed', output = ?, retry_count = ?, updated_at = datetime('now') WHERE id = ?"
@@ -744,6 +768,7 @@ export function failStep(stepId: string, error: string): { retrying: boolean; ru
     db.prepare(
       "UPDATE runs SET status = 'failed', updated_at = datetime('now') WHERE id = ?"
     ).run(step.run_id);
+    traceStepFail(step.run_id, stepId, error, duration);
     const wfId2 = getWorkflowId(step.run_id);
     emitEvent({ ts: new Date().toISOString(), event: "step.failed", runId: step.run_id, workflowId: wfId2, stepId: stepId, detail: error });
     emitEvent({ ts: new Date().toISOString(), event: "run.failed", runId: step.run_id, workflowId: wfId2, detail: "Step retries exhausted" });
