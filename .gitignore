@@ -1,6 +1,28 @@
-node_modules/
+# Build artifacts
 dist/
+*.tsbuildinfo
+*.log
+
+# Dependencies
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
 .DS_Store
-*.db
-*.sqlite
-*.sqlite3
+
+# Landing page build
+landing/.next/
+landing/out/
+landing/node_modules/
+
+# Local test files
+test-*.ts
+test-*.js
+IMPLEMENTATION_SUMMARY.md
+GUARDRAILS_PARALLEL_USAGE.md
+
+# Local state (stored in ~/.openclaw)
+.openclaw/
