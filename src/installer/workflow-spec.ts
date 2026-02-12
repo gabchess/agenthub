@@ -95,6 +95,7 @@ function parseOnChainConfig(raw: any) {
     expected_state: raw.expected_state,
     wait_for_confirmation: raw.wait_for_confirmation ?? true,
     timeout_ms: raw.timeout_ms ?? 30000,
+    tool_params: raw.tool_params,
   };
 }
 
@@ -165,8 +166,9 @@ function validateSteps(steps: WorkflowStep[], workflowDir: string) {
       if (!step.on_chain.operation) {
         throw new Error(`workflow.yml step "${step.id}" on_chain.operation is required`);
       }
-      if (!["submit_tx", "read_state", "verify_event"].includes(step.on_chain.operation)) {
-        throw new Error(`workflow.yml step "${step.id}" on_chain.operation must be "submit_tx", "read_state", or "verify_event"`);
+      const validOperations = ["submit_tx", "read_state", "verify_event", "wallet_balance", "token_price", "contract_read"];
+      if (!validOperations.includes(step.on_chain.operation)) {
+        throw new Error(`workflow.yml step "${step.id}" on_chain.operation must be one of: ${validOperations.join(", ")}`);
       }
     }
   }
