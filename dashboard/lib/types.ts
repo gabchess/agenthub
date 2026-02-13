@@ -121,6 +121,7 @@ export interface Workflow {
   id: string;
   name: string;
   steps: Array<{ id: string; agent: string }>;
+  agents?: Array<{ id: string; name: string; role: string }>;
 }
 
 export interface TraceStats {

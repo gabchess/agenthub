@@ -41,7 +41,17 @@ export function Sidebar() {
   return (
     <aside className="w-56 h-screen bg-surface border-r border-border flex flex-col fixed left-0 top-0">
       <div className="p-4 border-b border-border">
-        <h1 className="text-accent-green font-bold text-lg text-glow-green tracking-tight">
+        <h1 className="text-accent-green font-bold text-lg text-glow-green tracking-tight flex items-center gap-2">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="shrink-0">
+            <path d="M12 2L21.196 7.5V18.5L12 24L2.804 18.5V7.5L12 2Z" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.1" />
+            <circle cx="12" cy="13" r="3" fill="currentColor" fillOpacity="0.6" />
+            <line x1="12" y1="10" x2="12" y2="5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1="12" y1="16" x2="12" y2="21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1="9.4" y1="11.5" x2="5.5" y2="9.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1="14.6" y1="14.5" x2="18.5" y2="16.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1="14.6" y1="11.5" x2="18.5" y2="9.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1="9.4" y1="14.5" x2="5.5" y2="16.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
           AgentHub
         </h1>
         <p className="text-[10px] text-gray-600 mt-0.5 uppercase tracking-widest">

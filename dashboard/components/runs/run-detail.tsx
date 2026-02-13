@@ -6,6 +6,7 @@ import { StepCard } from "./step-card";
 import { StoryProgress } from "./story-progress";
 import { useStories } from "@/lib/hooks/use-stories";
 import { useTraces } from "@/lib/hooks/use-traces";
+import { useWorkflows } from "@/lib/hooks/use-workflows";
 import { TraceTypeBadge } from "@/components/ui/trace-type-badge";
 import { formatTimestamp, formatDuration, formatTokens } from "@/lib/utils";
 import { relativeTime, formatFullTimestamp } from "@/lib/utils";
@@ -14,6 +15,12 @@ import type { TraceType } from "@/lib/types";
 export function RunDetail({ run }: { run: Run }) {
   const { stories } = useStories(run.id);
   const { traces } = useTraces({ run_id: run.id, limit: 50 });
+  const { workflows } = useWorkflows();
+
+  const workflow = workflows.find((w) => w.id === run.workflow_id);
+  const agentMap = new Map(
+    (workflow?.agents ?? []).map((a) => [a.id, { name: a.name, role: a.role }])
+  );
 
   const completedSteps = run.steps?.filter((s) => s.status === "done").length ?? 0;
   const totalSteps = run.steps?.length ?? 0;
@@ -59,13 +66,18 @@ export function RunDetail({ run }: { run: Run }) {
       <div>
         <h3 className="text-sm font-medium text-gray-400 mb-3">Step Pipeline</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {run.steps?.map((step) => (
-            <StepCard
-              key={step.id}
-              step={step}
-              isActive={step.status === "running"}
-            />
-          ))}
+          {run.steps?.map((step) => {
+            const agent = agentMap.get(step.agent_id);
+            return (
+              <StepCard
+                key={step.id}
+                step={step}
+                isActive={step.status === "running"}
+                agentName={agent?.name}
+                agentRole={agent?.role}
+              />
+            );
+          })}
         </div>
       </div>
 

@@ -1,10 +1,11 @@
 "use client";
 
-import type { Step } from "@/lib/types";
+import type { Step, AgentRole } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { RoleBadge } from "@/components/ui/role-badge";
 import { clsx } from "clsx";
 
-export function StepCard({ step, isActive }: { step: Step; isActive?: boolean }) {
+export function StepCard({ step, isActive, agentName, agentRole }: { step: Step; isActive?: boolean; agentName?: string; agentRole?: string }) {
   return (
     <div
       className={clsx(
@@ -26,9 +27,15 @@ export function StepCard({ step, isActive }: { step: Step; isActive?: boolean })
         <StatusBadge status={step.status} variant="step" />
       </div>
 
+      {agentName && (
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-gray-200 text-xs font-bold">{agentName}</span>
+          {agentRole && <RoleBadge role={agentRole as AgentRole} />}
+        </div>
+      )}
       <div className="flex items-center gap-2 text-[11px]">
         <span className="text-gray-500">agent:</span>
-        <span className="text-accent-cyan font-mono">{step.agent_id}</span>
+        <span className="text-accent-cyan font-mono text-[10px]">{step.agent_id}</span>
       </div>
 
       {step.type !== "single" && (

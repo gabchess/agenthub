@@ -40,7 +40,8 @@ export default function HomePage() {
           {/* Email Waitlist */}
           <div className="pt-12">
             <form
-              action="https://formspree.io/f/YOUR_FORM_ID"
+              {/* TODO: Replace with your Formspree form ID */}
+              action=""
               method="POST"
               className="max-w-md mx-auto"
             >

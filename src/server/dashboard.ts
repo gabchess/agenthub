@@ -25,6 +25,7 @@ interface WorkflowDef {
   id: string;
   name: string;
   steps: Array<{ id: string; agent: string }>;
+  agents: Array<{ id: string; name: string; role: string }>;
 }
 
 function loadWorkflows(): WorkflowDef[] {
@@ -40,6 +41,7 @@ function loadWorkflows(): WorkflowDef[] {
         id: parsed.id ?? entry.name,
         name: parsed.name ?? entry.name,
         steps: (parsed.steps ?? []).map((s: any) => ({ id: s.id, agent: s.agent })),
+        agents: (parsed.agents ?? []).map((a: any) => ({ id: a.id, name: a.name ?? a.id, role: a.role ?? "" })),
       });
     }
   } catch { /* empty */ }
