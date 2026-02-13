@@ -8,13 +8,13 @@ description: |
 
 context:
   purpose: Real-time DeFi threat detection and alerting on Monad
-  monad_testnet_rpc: https://testnet.monad.xyz/v1
+  monad_rpc: https://monad-mainnet.g.alchemy.com/v2/demo
   alert_threshold_usd: "10000"
   price_change_alert_pct: "5"
   whale_threshold_mon: "100"
-  watched_token: "0x1234567890123456789012345678901234567890"
+  watched_token: "0x836047a99e11F376522B0B61742B2D9E7a6b185C"
   watched_chain: "monad"
-  watched_wallet: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+  watched_wallet: "0xE57C0765a03A0E8AAaAb60bc07E3a6e7fE4bDc4E"
 
 agents:
   - id: scout
@@ -75,7 +75,7 @@ steps:
     agent: scout
     type: on_chain_verify
     on_chain:
-      chain: monad-testnet
+      chain: monad-mainnet
       operation: read_state
       wait_for_confirmation: false
     input: |
@@ -111,7 +111,7 @@ steps:
     agent: scout
     type: on_chain_verify
     on_chain:
-      chain: monad-testnet
+      chain: monad-mainnet
       operation: wallet_balance
       tool_params:
         addresses:
@@ -144,7 +144,7 @@ steps:
     agent: analyst
     type: on_chain_verify
     on_chain:
-      chain: monad-testnet
+      chain: monad-mainnet
       operation: token_price
       tool_params:
         tokens:
@@ -192,7 +192,7 @@ steps:
     agent: analyst
     type: on_chain_verify
     on_chain:
-      chain: monad-testnet
+      chain: monad-mainnet
       operation: contract_read
       tool_params:
         contractAddress: "{{watched_token}}"

@@ -1,6 +1,6 @@
 import { createAgentCronJob, deleteAgentCronJobs, listCronJobs, checkCronToolAvailable } from "./gateway-api.js";
 import type { WorkflowSpec, WorkflowAgent } from "./types.js";
-import { resolveAntfarmCli } from "./paths.js";
+import { resolveAgentHubCli } from "./paths.js";
 import { getDb } from "../db.js";
 import { mapThinkingLevel, getDefaultThinkingConfig } from '../lib/thinking-mapper.js';
 
@@ -9,13 +9,13 @@ const DEFAULT_AGENT_TIMEOUT_SECONDS = 30 * 60; // 30 minutes
 
 function buildAgentPrompt(workflowId: string, agent: WorkflowAgent): string {
   const fullAgentId = `${workflowId}/${agent.id}`;
-  const cli = resolveAntfarmCli();
+  const cli = resolveAgentHubCli();
 
   // Get thinking configuration
   const thinkingConfig = agent.thinking || getDefaultThinkingConfig();
   const modelParams = mapThinkingLevel(thinkingConfig);
 
-  return `You are an Antfarm workflow agent. Check for pending work and execute it.
+  return `You are an AgentHub workflow agent. Check for pending work and execute it.
 
 ⚠️ CRITICAL: You MUST call "step complete" or "step fail" before ending your session. If you don't, the workflow will be stuck forever. This is non-negotiable.
 
@@ -23,7 +23,7 @@ Thinking mode: ${thinkingConfig.level}
 Token budget: ${modelParams.tokenBudget}
 ${modelParams.extendedThinking ? 'Extended thinking enabled.' : ''}
 
-State filesystem: ~/.openclaw/antfarm/state/\${runId}/agents/${agent.id}/
+State filesystem: ~/.openclaw/agenthub/state/\${runId}/agents/${agent.id}/
 
 Step 1 — Check for pending work:
 \`\`\`
@@ -40,12 +40,12 @@ Step 3 — Do the work described in the input. Format your output with KEY: valu
 
 Step 4 — MANDATORY: Report completion (do this IMMEDIATELY after finishing the work):
 \`\`\`
-cat <<'ANTFARM_EOF' > /tmp/antfarm-step-output.txt
+cat <<'ANTFARM_EOF' > /tmp/agenthub-step-output.txt
 STATUS: done
 CHANGES: what you did
 TESTS: what tests you ran
 ANTFARM_EOF
-cat /tmp/antfarm-step-output.txt | node ${cli} step complete "<stepId>"
+cat /tmp/agenthub-step-output.txt | node ${cli} step complete "<stepId>"
 \`\`\`
 
 If the work FAILED:
@@ -68,7 +68,7 @@ export async function setupAgentCrons(workflow: WorkflowSpec): Promise<void> {
   for (let i = 0; i < agents.length; i++) {
     const agent = agents[i];
     const anchorMs = i * 60_000; // stagger by 1 minute each
-    const cronName = `antfarm/${workflow.id}/${agent.id}`;
+    const cronName = `agenthub/${workflow.id}/${agent.id}`;
     const agentId = `${workflow.id}/${agent.id}`;
     const prompt = buildAgentPrompt(workflow.id, agent);
     const timeoutSeconds = agent.timeoutSeconds ?? DEFAULT_AGENT_TIMEOUT_SECONDS;
@@ -89,7 +89,7 @@ export async function setupAgentCrons(workflow: WorkflowSpec): Promise<void> {
 }
 
 export async function removeAgentCrons(workflowId: string): Promise<void> {
-  await deleteAgentCronJobs(`antfarm/${workflowId}/`);
+  await deleteAgentCronJobs(`agenthub/${workflowId}/`);
 }
 
 // ── Run-scoped cron lifecycle ───────────────────────────────────────
@@ -111,7 +111,7 @@ function countActiveRuns(workflowId: string): number {
 async function workflowCronsExist(workflowId: string): Promise<boolean> {
   const result = await listCronJobs();
   if (!result.ok || !result.jobs) return false;
-  const prefix = `antfarm/${workflowId}/`;
+  const prefix = `agenthub/${workflowId}/`;
   return result.jobs.some((j) => j.name.startsWith(prefix));
 }
 

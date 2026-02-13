@@ -170,7 +170,7 @@ describe("Integration Tests", () => {
       const tracePath = path.join(
         os.homedir(),
         ".openclaw",
-        "antfarm",
+        "agenthub",
         "state",
         testRunId
       );

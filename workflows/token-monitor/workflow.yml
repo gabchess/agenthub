@@ -29,7 +29,7 @@ steps:
     agent: monitor
     type: on_chain_verify
     on_chain:
-      chain: monad-testnet
+      chain: monad-mainnet
       operation: wallet_balance
       tool_params:
         addresses:
@@ -47,7 +47,7 @@ steps:
     agent: monitor
     type: on_chain_verify
     on_chain:
-      chain: monad-testnet
+      chain: monad-mainnet
       operation: token_price
       tool_params:
         tokens:
@@ -68,7 +68,7 @@ steps:
     agent: monitor
     type: on_chain_verify
     on_chain:
-      chain: monad-testnet
+      chain: monad-mainnet
       operation: contract_read
       tool_params:
         contractAddress: "{{token_address}}"

@@ -2,7 +2,7 @@
  * Monad blockchain integration layer
  *
  * Provides:
- * - RPC connection to Monad testnet
+ * - RPC connection to Monad mainnet (testnet fallback via MONAD_NETWORK=testnet)
  * - Wallet creation and management
  * - Transaction submission with parallel execution support
  * - Gas estimation optimized for Monad
@@ -33,10 +33,10 @@ import type {
 } from './types.js';
 
 /**
- * Monad testnet chain definition
+ * Monad testnet chain definition (fallback)
  */
 export const monadTestnet = defineChain({
-  id: 41454, // Monad testnet chain ID
+  id: 41454,
   name: 'Monad Testnet',
   nativeCurrency: {
     name: 'Monad',
@@ -61,10 +61,10 @@ export const monadTestnet = defineChain({
 });
 
 /**
- * Monad mainnet chain definition (for future use)
+ * Monad mainnet chain definition (default)
  */
 export const monadMainnet = defineChain({
-  id: 143, // Monad mainnet chain ID (placeholder)
+  id: 10143,
   name: 'Monad',
   nativeCurrency: {
     name: 'Monad',
@@ -73,10 +73,10 @@ export const monadMainnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: ['https://mainnet.monad.xyz/v1'], // Placeholder
+      http: [process.env.MONAD_RPC_URL || 'https://monad-mainnet.g.alchemy.com/v2/demo'],
     },
     public: {
-      http: ['https://mainnet.monad.xyz/v1'],
+      http: [process.env.MONAD_RPC_URL || 'https://monad-mainnet.g.alchemy.com/v2/demo'],
     },
   },
   blockExplorers: {
@@ -87,6 +87,14 @@ export const monadMainnet = defineChain({
   },
   testnet: false,
 });
+
+/**
+ * Get the active chain based on MONAD_NETWORK env var.
+ * Default: mainnet. Set MONAD_NETWORK=testnet for testnet fallback.
+ */
+export function getActiveChain() {
+  return process.env.MONAD_NETWORK === 'testnet' ? monadTestnet : monadMainnet;
+}
 
 /**
  * Local nonce tracker for parallel transaction submission
@@ -141,9 +149,11 @@ export class MonadClient implements BlockchainClient {
   private nonceManager: NonceManager;
 
   constructor(privateKey?: `0x${string}`) {
+    const chain = getActiveChain();
+
     // Create public client for reading
     this.publicClient = createPublicClient({
-      chain: monadTestnet,
+      chain,
       transport: http(),
     });
 
@@ -152,7 +162,7 @@ export class MonadClient implements BlockchainClient {
       this.account = privateKeyToAccount(privateKey);
       this.walletClient = createWalletClient({
         account: this.account,
-        chain: monadTestnet,
+        chain,
         transport: http(),
       });
     }

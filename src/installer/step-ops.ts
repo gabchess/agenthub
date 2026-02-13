@@ -10,6 +10,9 @@ import { logger } from "../lib/logger.js";
 import { traceStepClaim, traceStepComplete, traceStepFail } from '../lib/tracer.js';
 import { getParallelStepForAgent, canClaimParallelStep, claimParallelStep } from './parallel-executor.js';
 import { loadAgentGuardrails, checkToolAllowed } from './guardrails.js';
+import { recordStepXp, recordStepFailure } from '../lib/xp.js';
+import { validateResolvedTemplate } from '../lib/context-validator.js';
+import type { StepBriefing } from './types.js';
 
 /**
  * Fire-and-forget cron teardown when a run ends.
@@ -289,6 +292,73 @@ interface ClaimResult {
   stepId?: string;
   runId?: string;
   resolvedInput?: string;
+  briefing?: StepBriefing;
+}
+
+function buildBriefing(params: {
+  runId: string;
+  stepId: string;
+  agentId: string;
+  resolvedInput: string;
+  context: Record<string, string>;
+  retryCount: number;
+  story?: { storyId: string; title: string; description: string; acceptanceCriteria: string[] };
+}): StepBriefing {
+  const db = getDb();
+  const workflowId = getWorkflowId(params.runId) || 'unknown';
+
+  // Validate template resolution
+  const validation = validateResolvedTemplate(params.resolvedInput);
+
+  // Gather prior step outputs
+  const completedSteps = db.prepare(
+    "SELECT step_id, agent_id, status, output FROM steps WHERE run_id = ? AND status = 'done' AND output IS NOT NULL"
+  ).all(params.runId) as { step_id: string; agent_id: string; status: string; output: string }[];
+
+  const priorOutputs: StepBriefing['priorOutputs'] = {};
+  for (const cs of completedSteps) {
+    const parsed: Record<string, string> = {};
+    for (const line of cs.output.split('\n')) {
+      const match = line.match(/^([A-Z_]+):\s*(.+)$/);
+      if (match) parsed[match[1].toLowerCase()] = match[2].trim();
+    }
+    priorOutputs[cs.step_id] = {
+      stepId: cs.step_id,
+      agentId: cs.agent_id,
+      status: cs.status,
+      output: cs.output,
+      parsed,
+    };
+  }
+
+  // Load guardrails for constraints
+  let constraints: StepBriefing['constraints'] = {};
+  try {
+    const guardrails = db.prepare("SELECT tool_allowlist, max_spend_per_run FROM agent_guardrails WHERE agent_id = ?").get(params.agentId) as { tool_allowlist: string | null; max_spend_per_run: string | null } | undefined;
+    if (guardrails) {
+      constraints = {
+        toolAllowlist: guardrails.tool_allowlist ? JSON.parse(guardrails.tool_allowlist) : undefined,
+        maxSpendPerRun: guardrails.max_spend_per_run ? parseFloat(guardrails.max_spend_per_run) : undefined,
+      };
+    }
+  } catch {}
+
+  return {
+    meta: {
+      runId: params.runId,
+      stepId: params.stepId,
+      agentId: params.agentId,
+      workflowId,
+      attempt: params.retryCount + 1,
+      timestamp: new Date().toISOString(),
+      warnings: validation.missingVars.map(v => `Missing variable: ${v}`),
+    },
+    task: params.resolvedInput,
+    priorOutputs,
+    context: params.context,
+    constraints,
+    story: params.story,
+  };
 }
 
 /**
@@ -425,6 +495,20 @@ export function claimStep(agentId: string): ClaimResult {
   }
 
   const resolvedInput = resolveTemplate(step.input_template, context);
+
+  // Build briefing (non-blocking, soft validation)
+  const briefing = buildBriefing({
+    runId: step.run_id,
+    stepId: step.id,
+    agentId: agentId,
+    resolvedInput,
+    context,
+    retryCount: 0,
+  });
+  if (briefing.meta.warnings.length > 0) {
+    logger.warn(`Step ${step.id} has template warnings: ${briefing.meta.warnings.join(', ')}`, { runId: step.run_id, stepId: step.id });
+  }
+
   traceStepClaim(step.run_id, step.id, agentId, resolvedInput);
 
   return {
@@ -432,6 +516,7 @@ export function claimStep(agentId: string): ClaimResult {
     stepId: step.id,
     runId: step.run_id,
     resolvedInput,
+    briefing,
   };
 }
 
@@ -444,8 +529,8 @@ export function completeStep(stepId: string, output: string): { advanced: boolea
   const db = getDb();
 
   const step = db.prepare(
-    "SELECT id, run_id, step_id, step_index, type, loop_config, current_story_id FROM steps WHERE id = ?"
-  ).get(stepId) as { id: string; run_id: string; step_id: string; step_index: number; type: string; loop_config: string | null; current_story_id: string | null } | undefined;
+    "SELECT id, run_id, step_id, agent_id, step_index, type, loop_config, current_story_id, retry_count FROM steps WHERE id = ?"
+  ).get(stepId) as { id: string; run_id: string; step_id: string; agent_id: string; step_index: number; type: string; loop_config: string | null; current_story_id: string | null; retry_count: number } | undefined;
 
   if (!step) throw new Error(`Step not found: ${stepId}`);
 
@@ -463,6 +548,22 @@ export function completeStep(stepId: string, output: string): { advanced: boolea
   db.prepare(
     "UPDATE runs SET context = ?, updated_at = datetime('now') WHERE id = ?"
   ).run(JSON.stringify(context), step.run_id);
+
+  // Auto-persist REMEMBER_ prefixed outputs to persistent memory (fire-and-forget)
+  const rememberLines: [string, string][] = [];
+  for (const line of output.split("\n")) {
+    const remMatch = line.match(/^(REMEMBER_[A-Z_]+):\s*(.+)$/);
+    if (remMatch) rememberLines.push([remMatch[1].toLowerCase(), remMatch[2].trim()]);
+  }
+  if (rememberLines.length > 0) {
+    import('../lib/state-fs.js').then(({ getStateFsManager }) => {
+      const workflowId = getWorkflowId(step.run_id) || 'unknown';
+      const mgr = getStateFsManager(step.run_id, workflowId);
+      for (const [key, value] of rememberLines) {
+        mgr.writePersistentMemory(step.agent_id, key, value).catch(() => {});
+      }
+    }).catch(() => {});
+  }
 
   // T5: Parse STORIES_JSON from output (any step, typically the planner)
   parseAndInsertStories(output, step.run_id);
@@ -531,6 +632,19 @@ export function completeStep(stepId: string, output: string): { advanced: boolea
   const stepRecord = db.prepare("SELECT created_at FROM steps WHERE id = ?").get(stepId) as { created_at: string } | undefined;
   const duration = stepRecord ? Date.now() - new Date(stepRecord.created_at).getTime() : 0;
   traceStepComplete(step.run_id, stepId, output, duration);
+
+  // Record XP (non-blocking)
+  recordStepXp({
+    agentId: step.agent_id,
+    runId: step.run_id,
+    stepId: step.step_id,
+    stepType: step.type || "single",
+    durationMs: duration,
+    inputTokens: 0, // populated from execution_traces if available
+    outputTokens: 0,
+    retryCount: step.retry_count || 0,
+    wasRetry: (step.retry_count || 0) > 0,
+  });
 
   emitEvent({ ts: new Date().toISOString(), event: "step.done", runId: step.run_id, workflowId: getWorkflowId(step.run_id), stepId: step.id });
   logger.info(`Step completed: ${step.step_id}`, { runId: step.run_id, stepId: step.id });
@@ -728,10 +842,13 @@ export function failStep(stepId: string, error: string): { retrying: boolean; ru
   const db = getDb();
 
   const step = db.prepare(
-    "SELECT run_id, retry_count, max_retries, type, current_story_id FROM steps WHERE id = ?"
-  ).get(stepId) as { run_id: string; retry_count: number; max_retries: number; type: string; current_story_id: string | null } | undefined;
+    "SELECT run_id, agent_id, step_id, retry_count, max_retries, type, current_story_id FROM steps WHERE id = ?"
+  ).get(stepId) as { run_id: string; agent_id: string; step_id: string; retry_count: number; max_retries: number; type: string; current_story_id: string | null } | undefined;
 
   if (!step) throw new Error(`Step not found: ${stepId}`);
+
+  // Record XP failure (non-blocking)
+  recordStepFailure(step.agent_id, step.run_id, step.step_id);
 
   // T9: Loop step failure — per-story retry
   if (step.type === "loop" && step.current_story_id) {

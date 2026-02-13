@@ -13,7 +13,7 @@ import {
 
 describe("Approval Queue", () => {
   const testDir = path.join(os.tmpdir(), "approval-queue-test-" + Date.now());
-  const approvalsDir = path.join(testDir, ".openclaw", "antfarm", "approvals");
+  const approvalsDir = path.join(testDir, ".openclaw", "agenthub", "approvals");
 
   before(async () => {
     // Override the approvals directory for testing
@@ -34,7 +34,7 @@ describe("Approval Queue", () => {
       const realApprovalsDir = path.join(
         os.homedir(),
         ".openclaw",
-        "antfarm",
+        "agenthub",
         "approvals"
       );
       const files = await fs.readdir(realApprovalsDir);

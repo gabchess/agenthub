@@ -55,7 +55,7 @@ export class ContractCollector extends BaseCollector {
             contractAddress: target.contractAddress,
             method: target.method,
             args: target.args as any[],
-            chain: 'monad-testnet',
+            chain: 'monad-mainnet',
           },
           cache,
         );
@@ -66,7 +66,7 @@ export class ContractCollector extends BaseCollector {
           : null;
 
         insertContractEvent({
-          chain: 'monad-testnet',
+          chain: 'monad-mainnet',
           contract_address: target.contractAddress,
           method: target.method,
           args: JSON.stringify(target.args),

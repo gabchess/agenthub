@@ -4,7 +4,7 @@ import { execSync } from "node:child_process";
 import { readOpenClawConfig, writeOpenClawConfig } from "./openclaw-config.js";
 import { removeMainAgentGuidance } from "./main-agent-guidance.js";
 import {
-  resolveAntfarmRoot,
+  resolveAgentHubRoot,
   resolveRunRoot,
   resolveWorkflowDir,
   resolveWorkflowWorkspaceDir,
@@ -12,7 +12,7 @@ import {
   resolveWorkflowRoot,
 } from "./paths.js";
 import { removeSubagentAllowlist } from "./subagent-allowlist.js";
-import { uninstallAntfarmSkill } from "./skill-install.js";
+import { uninstallAgentHubSkill } from "./skill-install.js";
 import { removeAgentCrons } from "./agent-cron.js";
 import { deleteAgentCronJobs } from "./gateway-api.js";
 import { getDb } from "../db.js";
@@ -144,10 +144,10 @@ export async function uninstallAllWorkflows(): Promise<void> {
   await writeOpenClawConfig(configPath, config);
 
   await removeMainAgentGuidance();
-  await uninstallAntfarmSkill();
+  await uninstallAgentHubSkill();
 
-  // Remove all antfarm cron jobs
-  await deleteAgentCronJobs("antfarm/");
+  // Remove all agenthub cron jobs
+  await deleteAgentCronJobs("agenthub/");
 
   const workflowRoot = resolveWorkflowRoot();
   if (await pathExists(workflowRoot)) {
@@ -191,11 +191,11 @@ export async function uninstallAllWorkflows(): Promise<void> {
     }
   }
 
-  const antfarmRoot = resolveAntfarmRoot();
-  if (await pathExists(antfarmRoot)) {
-    const entries = await fs.readdir(antfarmRoot).catch(() => [] as string[]);
+  const agenthubRoot = resolveAgentHubRoot();
+  if (await pathExists(agenthubRoot)) {
+    const entries = await fs.readdir(agenthubRoot).catch(() => [] as string[]);
     if (entries.length === 0) {
-      await fs.rm(antfarmRoot, { recursive: true, force: true });
+      await fs.rm(agenthubRoot, { recursive: true, force: true });
     }
   }
 

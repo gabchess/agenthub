@@ -11,7 +11,7 @@ import os from 'node:os';
 import { PipelineOrchestrator } from './orchestrator.js';
 import { logger } from '../lib/logger.js';
 
-const PID_DIR = path.join(os.homedir(), '.openclaw', 'antfarm');
+const PID_DIR = path.join(os.homedir(), '.openclaw', 'agenthub');
 const PID_FILE = path.join(PID_DIR, 'pipeline.pid');
 
 function writePidFile(): void {

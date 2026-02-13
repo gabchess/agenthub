@@ -1,6 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import type { Run } from "@/lib/types";
+import { clsx } from "clsx";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { StepCard } from "./step-card";
 import { StoryProgress } from "./story-progress";
@@ -12,10 +14,40 @@ import { formatTimestamp, formatDuration, formatTokens } from "@/lib/utils";
 import { relativeTime, formatFullTimestamp } from "@/lib/utils";
 import type { TraceType } from "@/lib/types";
 
+function useRunDuration(run: Run) {
+  const isRunning = run.status === "running";
+  const [elapsed, setElapsed] = useState<number>(() => {
+    const start = new Date(run.created_at).getTime();
+    const end = isRunning ? Date.now() : new Date(run.updated_at).getTime();
+    return end - start;
+  });
+
+  useEffect(() => {
+    if (!isRunning) {
+      const start = new Date(run.created_at).getTime();
+      const end = new Date(run.updated_at).getTime();
+      setElapsed(end - start);
+      return;
+    }
+
+    const start = new Date(run.created_at).getTime();
+    setElapsed(Date.now() - start);
+
+    const interval = setInterval(() => {
+      setElapsed(Date.now() - start);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [run.created_at, run.updated_at, isRunning]);
+
+  return { elapsed, isRunning };
+}
+
 export function RunDetail({ run }: { run: Run }) {
   const { stories } = useStories(run.id);
   const { traces } = useTraces({ run_id: run.id, limit: 50 });
   const { workflows } = useWorkflows();
+  const { elapsed, isRunning } = useRunDuration(run);
 
   const workflow = workflows.find((w) => w.id === run.workflow_id);
   const agentMap = new Map(
@@ -35,6 +67,13 @@ export function RunDetail({ run }: { run: Run }) {
               {run.id.slice(0, 12)}
             </h2>
             <StatusBadge status={run.status} variant="run" />
+            <span className={clsx(
+              "text-sm flex items-center gap-1",
+              isRunning ? "text-accent-green" : "text-gray-400"
+            )}>
+              <span className="text-xs">{"\u23F1"}</span>
+              {formatDuration(elapsed)}
+            </span>
           </div>
           <span className="text-gray-500 text-xs">
             {formatFullTimestamp(run.created_at)}

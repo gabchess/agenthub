@@ -1,7 +1,7 @@
 /**
  * Pipeline database migrations and typed helpers.
  *
- * Uses the same getDb() + antfarm.db as the rest of the system.
+ * Uses the same getDb() + agenthub.db as the rest of the system.
  * All tables use CREATE TABLE IF NOT EXISTS for idempotency.
  */
 
@@ -41,7 +41,7 @@ export function migratePipelineTables(): void {
       balance_wei TEXT NOT NULL,
       balance_formatted TEXT NOT NULL,
       block_number INTEGER NOT NULL,
-      chain TEXT NOT NULL DEFAULT 'monad-testnet',
+      chain TEXT NOT NULL DEFAULT 'monad-mainnet',
       created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_pbs_address ON pipeline_balance_snapshots(address);
@@ -64,7 +64,7 @@ export function migratePipelineTables(): void {
 
     CREATE TABLE IF NOT EXISTS pipeline_contract_events (
       id TEXT PRIMARY KEY,
-      chain TEXT NOT NULL DEFAULT 'monad-testnet',
+      chain TEXT NOT NULL DEFAULT 'monad-mainnet',
       contract_address TEXT NOT NULL,
       method TEXT NOT NULL,
       args TEXT,

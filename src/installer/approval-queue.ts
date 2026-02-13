@@ -22,7 +22,7 @@ export interface ApprovalRequest {
  * Get the directory for storing approval requests
  */
 function getApprovalsDir(): string {
-  return path.join(os.homedir(), ".openclaw", "antfarm", "approvals");
+  return path.join(os.homedir(), ".openclaw", "agenthub", "approvals");
 }
 
 /**

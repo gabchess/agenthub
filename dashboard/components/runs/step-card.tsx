@@ -1,11 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import type { Step, AgentRole } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { RoleBadge } from "@/components/ui/role-badge";
 import { clsx } from "clsx";
 
+function highlightKeyValueLines(text: string) {
+  return text.split("\n").map((line, i) => {
+    const match = line.match(/^([A-Za-z_][\w\s]*?):\s(.+)$/);
+    if (match) {
+      return (
+        <span key={i}>
+          <span className="text-accent-green">{match[1]}:</span> {match[2]}
+          {"\n"}
+        </span>
+      );
+    }
+    return <span key={i}>{line}{"\n"}</span>;
+  });
+}
+
 export function StepCard({ step, isActive, agentName, agentRole }: { step: Step; isActive?: boolean; agentName?: string; agentRole?: string }) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <div
       className={clsx(
@@ -55,9 +73,34 @@ export function StepCard({ step, isActive, agentName, agentRole }: { step: Step;
       )}
 
       {step.output && (
-        <div className="mt-2 text-[11px] text-gray-500 line-clamp-2 font-mono">
-          {step.output.slice(0, 120)}
-          {step.output.length > 120 && "..."}
+        <div className="mt-2">
+          {!expanded ? (
+            <button
+              onClick={() => setExpanded(true)}
+              className="w-full text-left group"
+            >
+              <div className="bg-page/50 rounded p-2 text-xs text-gray-400 font-mono">
+                {step.output.slice(0, 200)}
+                {step.output.length > 200 && (
+                  <span className="text-accent-cyan ml-1 group-hover:underline">
+                    ...expand
+                  </span>
+                )}
+              </div>
+            </button>
+          ) : (
+            <div>
+              <button
+                onClick={() => setExpanded(false)}
+                className="text-[10px] text-accent-cyan hover:underline mb-1"
+              >
+                collapse
+              </button>
+              <pre className="bg-page/50 rounded p-2 text-xs text-gray-400 font-mono max-h-64 overflow-y-auto whitespace-pre-wrap break-words">
+                {highlightKeyValueLines(step.output)}
+              </pre>
+            </div>
+          )}
         </div>
       )}
     </div>

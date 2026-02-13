@@ -175,3 +175,34 @@ export type WorkflowRunRecord = {
   createdAt: string;
   updatedAt: string;
 };
+
+export interface StepBriefing {
+  meta: {
+    runId: string;
+    stepId: string;
+    agentId: string;
+    workflowId: string;
+    attempt: number;
+    timestamp: string;
+    warnings: string[];
+  };
+  task: string;
+  priorOutputs: Record<string, {
+    stepId: string;
+    agentId: string;
+    status: string;
+    output: string;
+    parsed: Record<string, string>;
+  }>;
+  context: Record<string, string>;
+  constraints: {
+    toolAllowlist?: string[];
+    maxSpendPerRun?: number;
+  };
+  story?: {
+    storyId: string;
+    title: string;
+    description: string;
+    acceptanceCriteria: string[];
+  };
+}

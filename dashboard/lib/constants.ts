@@ -62,6 +62,27 @@ export const STORY_STATUS_COLORS: Record<StoryStatus, string> = {
   failed: "text-accent-red bg-accent-red/10 border-accent-red/30",
 };
 
+// Level → color class mapping
+export const LEVEL_COLORS: Record<number, string> = {
+  1: "text-gray-400 bg-gray-400/10 border-gray-400/30",
+  2: "text-accent-cyan bg-accent-cyan/10 border-accent-cyan/30",
+  3: "text-accent-green bg-accent-green/10 border-accent-green/30",
+  4: "text-accent-amber bg-accent-amber/10 border-accent-amber/30",
+  5: "text-accent-purple bg-accent-purple/10 border-accent-purple/30",
+};
+
+// Level → glow class mapping
+export const LEVEL_GLOWS: Record<number, string> = {
+  1: "",
+  2: "glow-cyan",
+  3: "glow-green",
+  4: "",
+  5: "glow-purple",
+};
+
+// XP thresholds for each level
+export const LEVEL_THRESHOLDS = [0, 100, 500, 2000, 10000];
+
 // Navigation items
 export const NAV_ITEMS = [
   { href: "/runs", label: "Runs", icon: "play" },

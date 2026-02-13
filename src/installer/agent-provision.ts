@@ -99,20 +99,20 @@ export async function provisionAgents(params: {
 }
 
 async function installWorkflowSkill(workflow: WorkflowSpec, workflowDir: string) {
-  const skillSource = path.join(workflowDir, "skills", "antfarm-workflows");
+  const skillSource = path.join(workflowDir, "skills", "agenthub-workflows");
   try {
     await fs.access(skillSource);
   } catch {
     return;
   }
   for (const agent of workflow.agents) {
-    if (!agent.workspace.skills?.includes("antfarm-workflows")) {
+    if (!agent.workspace.skills?.includes("agenthub-workflows")) {
       continue;
     }
     const workspaceDir = resolveWorkspaceDir({ workflowId: workflow.id, agent });
     const targetDir = path.join(workspaceDir, "skills");
     await ensureDir(targetDir);
-    const destination = path.join(targetDir, "antfarm-workflows");
+    const destination = path.join(targetDir, "agenthub-workflows");
     await fs.rm(destination, { recursive: true, force: true });
     await fs.cp(skillSource, destination, { recursive: true });
   }

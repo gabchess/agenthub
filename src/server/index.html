@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Antfarm Dashboard</title>
+<title>AgentHub Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono&display=swap" rel="stylesheet">
@@ -184,7 +184,7 @@ select:focus{outline:none;border-color:#8ECFC0}
 </head>
 <body>
 <header>
-  <h1><span>antfarm</span> dashboard</h1>
+  <h1><span>agenthub</span> dashboard</h1>
   <select id="wf-select"><option value="">Loading...</option></select>
   <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode" aria-label="Toggle light/dark mode">☀️</button>
   <span class="refresh-note" id="refresh-note">Auto-refresh: 30s</span>
@@ -416,7 +416,7 @@ setInterval(() => { if (currentWf) loadRuns(); }, 30000);
 (function initTheme() {
   const btn = document.getElementById('theme-toggle');
   const root = document.documentElement;
-  const STORAGE_KEY = 'antfarm-theme';
+  const STORAGE_KEY = 'agenthub-theme';
 
   function getEffectiveTheme() {
     const stored = localStorage.getItem(STORAGE_KEY);

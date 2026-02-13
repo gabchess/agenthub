@@ -29,7 +29,7 @@ export class BalanceCollector extends BaseCollector {
 
     const cache = getGlobalCache();
     const result = await getWalletBalances(
-      { addresses: this.addresses, chain: 'monad-testnet' },
+      { addresses: this.addresses, chain: 'monad-mainnet' },
       cache,
     );
 
@@ -45,7 +45,7 @@ export class BalanceCollector extends BaseCollector {
         balance_wei: balance.balanceWei,
         balance_formatted: balance.balance,
         block_number: parseInt(balance.blockNumber, 10),
-        chain: 'monad-testnet',
+        chain: 'monad-mainnet',
       });
       ingested++;
 

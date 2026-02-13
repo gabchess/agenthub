@@ -7,7 +7,7 @@ import { getDb } from "../db.js";
  * StateFsManager provides a filesystem-based state layer for workflow runs.
  *
  * Directory structure:
- * ~/.openclaw/antfarm/state/{runId}/
+ * ~/.openclaw/agenthub/state/{runId}/
  *   ├── agents/{agentId}/
  *   │   ├── workspace/
  *   │   ├── outputs/
@@ -31,7 +31,7 @@ export class StateFsManager {
     this.runId = runId;
     this.workflowId = workflowId;
     this.basePath =
-      basePath || path.join(os.homedir(), ".openclaw", "antfarm", "state", runId);
+      basePath || path.join(os.homedir(), ".openclaw", "agenthub", "state", runId);
   }
 
   /**
@@ -222,6 +222,52 @@ export class StateFsManager {
        ON CONFLICT(run_id, agent_id, namespace, key)
        DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
     ).run(id, this.runId, agentId, namespace, key, value, now, now);
+  }
+
+  /**
+   * Write a key-value pair to persistent agent memory (survives across runs).
+   * Uses agent_archetype (e.g., "scout") for cross-workflow knowledge sharing.
+   */
+  async writePersistentMemory(agentId: string, key: string, value: string, namespace = 'default'): Promise<void> {
+    const db = getDb();
+    const archetype = agentId.split('/').pop() || agentId;
+    const now = new Date().toISOString();
+    const id = `${archetype}-${namespace}-${key}-${Date.now()}`;
+
+    db.prepare(
+      `INSERT INTO agent_memory (id, agent_archetype, namespace, key, value, source_run_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(agent_archetype, namespace, key)
+       DO UPDATE SET value = excluded.value, source_run_id = excluded.source_run_id, updated_at = excluded.updated_at`
+    ).run(id, archetype, namespace, key, value, this.runId, now, now);
+  }
+
+  /**
+   * Read a specific key from persistent agent memory.
+   */
+  async readPersistentMemory(agentId: string, key: string, namespace = 'default'): Promise<string | null> {
+    const db = getDb();
+    const archetype = agentId.split('/').pop() || agentId;
+    const row = db.prepare(
+      "SELECT value FROM agent_memory WHERE agent_archetype = ? AND namespace = ? AND key = ?"
+    ).get(archetype, namespace, key) as { value: string } | undefined;
+    return row?.value ?? null;
+  }
+
+  /**
+   * Get all persistent memory for an agent archetype.
+   */
+  async getAllPersistentMemory(agentId: string, namespace = 'default'): Promise<Record<string, string>> {
+    const db = getDb();
+    const archetype = agentId.split('/').pop() || agentId;
+    const rows = db.prepare(
+      "SELECT key, value FROM agent_memory WHERE agent_archetype = ? AND namespace = ?"
+    ).all(archetype, namespace) as { key: string; value: string }[];
+    const result: Record<string, string> = {};
+    for (const row of rows) {
+      result[row.key] = row.value;
+    }
+    return result;
   }
 }
 

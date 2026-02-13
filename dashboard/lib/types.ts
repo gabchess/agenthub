@@ -132,3 +132,21 @@ export interface TraceStats {
   total_duration_ms: number;
   trace_type_counts: Record<string, number>;
 }
+
+export interface AgentXp {
+  id: string;
+  agent_archetype: string;
+  total_xp: number;
+  level: number;
+  level_name: string;
+  steps_completed: number;
+  steps_failed: number;
+  avg_duration_ms: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  success_rate: number;
+  current_streak: number;
+  best_streak: number;
+  created_at: string;
+  updated_at: string;
+}

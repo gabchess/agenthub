@@ -18,6 +18,7 @@ import {
   migratePipelineTables,
 } from "../pipeline/db-pipeline.js";
 import { SSEBroadcaster } from "../pipeline/sse-broadcaster.js";
+import { getAllAgentXp } from "../lib/xp.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -49,7 +50,7 @@ function loadWorkflows(): WorkflowDef[] {
 }
 
 // Demo mode: only show these workflows in the dashboard
-const DEMO_WORKFLOWS = ["defi-sentinel", "token-monitor"];
+const DEMO_WORKFLOWS = ["defi-sentinel", "token-monitor", "whale-tracker"];
 
 function getRuns(workflowId?: string): Array<RunInfo & { steps: StepInfo[] }> {
   const db = getDb();
@@ -165,6 +166,71 @@ export function startDashboard(port = 3333): http.Server {
       return;
     }
 
+    if (p === "/api/agents/xp") {
+      try {
+        return json(res, getAllAgentXp());
+      } catch (err) {
+        return json(res, { error: "Failed to fetch agent XP data" }, 500);
+      }
+    }
+
+    const costMatch = p.match(/^\/api\/runs\/([^/]+)\/cost$/);
+    if (costMatch) {
+      const runId = costMatch[1];
+      try {
+        const db = getDb();
+        const traces = db.prepare(
+          "SELECT model, input_tokens, output_tokens FROM execution_traces WHERE run_id = ?"
+        ).all(runId) as Array<{ model: string | null; input_tokens: number | null; output_tokens: number | null }>;
+
+        const costByModel: Record<string, { inputTokens: number; outputTokens: number; costUsd: number }> = {};
+        let totalInputTokens = 0;
+        let totalOutputTokens = 0;
+
+        const rates: Record<string, { input: number; output: number }> = {
+          sonnet: { input: 3 / 1_000_000, output: 15 / 1_000_000 },
+          haiku: { input: 0.25 / 1_000_000, output: 1.25 / 1_000_000 },
+          opus: { input: 15 / 1_000_000, output: 75 / 1_000_000 },
+          default: { input: 3 / 1_000_000, output: 15 / 1_000_000 },
+        };
+
+        for (const trace of traces) {
+          const inputTokens = trace.input_tokens ?? 0;
+          const outputTokens = trace.output_tokens ?? 0;
+          totalInputTokens += inputTokens;
+          totalOutputTokens += outputTokens;
+
+          // Determine model family
+          const modelName = trace.model?.toLowerCase() ?? "default";
+          let modelFamily = "default";
+          if (modelName.includes("sonnet")) modelFamily = "sonnet";
+          else if (modelName.includes("haiku")) modelFamily = "haiku";
+          else if (modelName.includes("opus")) modelFamily = "opus";
+
+          if (!costByModel[modelFamily]) {
+            costByModel[modelFamily] = { inputTokens: 0, outputTokens: 0, costUsd: 0 };
+          }
+
+          costByModel[modelFamily].inputTokens += inputTokens;
+          costByModel[modelFamily].outputTokens += outputTokens;
+          const rate = rates[modelFamily] ?? rates.default;
+          costByModel[modelFamily].costUsd += inputTokens * rate.input + outputTokens * rate.output;
+        }
+
+        const totalCostUsd = Object.values(costByModel).reduce((sum, m) => sum + m.costUsd, 0);
+
+        return json(res, {
+          runId,
+          totalInputTokens,
+          totalOutputTokens,
+          costByModel,
+          totalCostUsd,
+        });
+      } catch (err) {
+        return json(res, { error: "Failed to calculate cost" }, 500);
+      }
+    }
+
     // --- Existing routes ---
 
     if (p === "/api/workflows") {
@@ -224,7 +290,7 @@ export function startDashboard(port = 3333): http.Server {
   });
 
   server.listen(port, () => {
-    console.log(`Antfarm Dashboard: http://localhost:${port}`);
+    console.log(`AgentHub Dashboard: http://localhost:${port}`);
   });
 
   return server;

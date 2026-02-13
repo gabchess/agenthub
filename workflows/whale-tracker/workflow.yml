@@ -1,0 +1,198 @@
+id: whale-tracker
+name: "Whale Tracker \u2014 Monad"
+version: 1
+description: |
+  Detects and analyzes large-value transfers on Monad mainnet, identifies
+  whale wallets, and generates actionable intelligence on accumulation/distribution
+  patterns.
+
+context:
+  chain: monad-mainnet
+  monad_rpc: https://testnet-rpc.monad.xyz
+  whale_threshold: "10000"
+  alert_recipients: "dashboard"
+
+agents:
+  - id: scanner
+    name: Whale Scanner
+    description: Watches for large transfers (>10,000 MON or >$50K equivalent) and monitors known whale addresses on Monad mainnet
+    role: scanning
+    model: haiku
+    guardrails:
+      toolAllowlist: ["monad_getBalance", "monad_getBlock", "monad_readContract", "dexscreener_price"]
+      maxSpendPerRun: 0.50
+    workspace:
+      baseDir: scanner
+      files:
+        IDENTITY.md: agents/scanner/IDENTITY.md
+
+  - id: analyst
+    name: Pattern Analyst
+    description: Analyzes whale movement patterns, accumulation vs distribution, and correlates with token price movements
+    role: analysis
+    model: sonnet
+    thinking:
+      level: medium
+    guardrails:
+      toolAllowlist: ["monad_getBalance", "monad_readContract", "dexscreener_price"]
+      maxSpendPerRun: 0.50
+    workspace:
+      baseDir: analyst
+      files:
+        IDENTITY.md: agents/analyst/IDENTITY.md
+
+  - id: reporter
+    name: Intel Reporter
+    description: Generates structured intelligence reports, formats findings as actionable alerts, and verifies on-chain data against analysis
+    role: verification
+    model: sonnet
+    guardrails:
+      toolAllowlist: ["monad_getBalance", "monad_readContract", "monad_getBlock"]
+      maxSpendPerRun: 0.50
+    workspace:
+      baseDir: reporter
+      files:
+        IDENTITY.md: agents/reporter/IDENTITY.md
+
+steps:
+  # Step 1: Scan Monad mainnet for large-value whale transfers
+  - id: scan-whale-transfers
+    agent: scanner
+    type: single
+    input: |
+      You are the Whale Scanner agent for Whale Tracker. Scan Monad mainnet for
+      recent large-value transfers.
+
+      Monitor the following known whale addresses:
+      - 0xE57C0765a03A0E8AAaAb60bc07E3a6e7fE4bDc4E
+      - 0x836047a99e11F376522B0B61742B2D9E7a6b185C
+
+      Chain: monad-mainnet
+      Whale threshold: {{whale_threshold}} MON
+
+      Report any transfers over 10,000 MON. For each detected transfer, include:
+      - Sender address
+      - Receiver address
+      - Amount (in MON)
+      - Transaction hash
+      - Block number
+
+      Output format:
+      WHALE_TRANSFERS: [list of transfers with sender, receiver, amount, tx_hash, block_number]
+      TRANSFER_COUNT: [number of transfers detected]
+
+      STATUS: done
+    expects: "STATUS: done"
+    max_retries: 2
+
+  # Step 2: Analyze whale transfer patterns for accumulation/distribution signals
+  - id: analyze-patterns
+    agent: analyst
+    type: single
+    input: |
+      You are the Pattern Analyst agent for Whale Tracker. Analyze whale transfer
+      patterns from the scanner output below.
+
+      Scanner data:
+      {{scan-whale-transfers.output}}
+
+      Your analysis tasks:
+      1. Determine if transfers represent accumulation (buying/collecting),
+         distribution (selling/dispersing), or repositioning (moving between own wallets)
+      2. Evaluate transfer frequency and amounts for trend signals
+      3. Identify counterparty patterns (are whales sending to exchanges, DEXes, or cold wallets?)
+      4. Cross-reference with current MON price using DexScreener
+
+      Consider:
+      - Multiple transfers to exchanges = likely distribution
+      - Multiple transfers from exchanges to single wallet = likely accumulation
+      - Transfers between known whale wallets = likely repositioning
+      - Large single transfers near price movements = potential market impact
+
+      Output format:
+      PATTERN_TYPE: [ACCUMULATION/DISTRIBUTION/REPOSITIONING/MIXED]
+      CONFIDENCE: [0.0-1.0]
+      ANALYSIS_SUMMARY: [detailed summary of findings]
+
+      STATUS: done
+    expects: "STATUS: done"
+    max_retries: 2
+
+  # Step 3: Verify analysis against on-chain state
+  - id: verify-onchain
+    agent: reporter
+    type: on_chain_verify
+    on_chain:
+      chain: monad-mainnet
+      operation: read_state
+      wait_for_confirmation: false
+    input: |
+      You are the Intel Reporter agent for Whale Tracker. Verify the following
+      analysis against on-chain state.
+
+      Analysis to verify:
+      {{analyze-patterns.output}}
+
+      Verification tasks:
+      1. Check current wallet balances of identified whale addresses on monad-mainnet
+      2. Confirm transfer history matches the scanner's findings
+      3. Validate that reported amounts and directions are consistent with on-chain data
+      4. Flag any discrepancies between analysis and actual chain state
+
+      Output format:
+      VERIFIED: [YES/NO/PARTIAL]
+      VERIFICATION_DETAILS: [explanation of verification results, any discrepancies found]
+
+      STATUS: done
+    expects: "STATUS: done"
+    max_retries: 2
+
+  # Step 4: Generate final whale intelligence report with actionable alerts
+  - id: generate-intel
+    agent: reporter
+    type: single
+    input: |
+      You are the Intel Reporter agent for Whale Tracker. Generate a comprehensive
+      whale intelligence report from all gathered data.
+
+      === SCANNER DATA ===
+      {{scan-whale-transfers.output}}
+
+      === PATTERN ANALYSIS ===
+      {{analyze-patterns.output}}
+
+      === ON-CHAIN VERIFICATION ===
+      {{verify-onchain.output}}
+
+      === REPORT PARAMETERS ===
+      Whale threshold: {{whale_threshold}} MON
+      Alert recipients: {{alert_recipients}}
+
+      Generate a structured intelligence alert with the following fields:
+
+      Output format:
+      +============================================+
+      |     WHALE TRACKER INTELLIGENCE REPORT      |
+      +============================================+
+
+      ALERT_LEVEL: [LOW/MEDIUM/HIGH]
+        - LOW: Normal whale activity, no actionable signals
+        - MEDIUM: Notable accumulation/distribution detected, worth monitoring
+        - HIGH: Significant whale movement with potential market impact
+
+      WHALE_ADDRESSES: [comma-separated list of active whale addresses]
+
+      PATTERN: [ACCUMULATION/DISTRIBUTION/REPOSITIONING]
+
+      RECOMMENDED_ACTION: [specific actionable recommendation based on findings]
+
+      CONFIDENCE_SCORE: [0.0-1.0 confidence in the overall assessment]
+
+      REMEMBER_WHALE_THRESHOLD: {{whale_threshold}}
+
+      DETAILED_FINDINGS:
+      [Numbered list of key findings with supporting evidence]
+
+      STATUS: done
+    expects: "STATUS: done"
+    max_retries: 2

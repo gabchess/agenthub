@@ -48,7 +48,7 @@ steps:
     agent: scanner
     type: on_chain_verify
     on_chain:
-      chain: monad-testnet
+      chain: monad-mainnet
       operation: read_state
       wait_for_confirmation: false
     input: |

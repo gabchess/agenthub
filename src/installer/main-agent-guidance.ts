@@ -2,15 +2,15 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { readOpenClawConfig } from "./openclaw-config.js";
 
-const WORKFLOW_BLOCK_START = "<!-- antfarm:workflows -->";
-const WORKFLOW_BLOCK_END = "<!-- /antfarm:workflows -->";
+const WORKFLOW_BLOCK_START = "<!-- agenthub:workflows -->";
+const WORKFLOW_BLOCK_END = "<!-- /agenthub:workflows -->";
 
-const CLI = "node ~/.openclaw/workspace/antfarm/dist/cli/cli.js";
+const CLI = "node ~/.openclaw/workspace/agenthub/dist/cli/cli.js";
 
 const TOOLS_BLOCK = `${WORKFLOW_BLOCK_START}
-# Antfarm Workflows
+# AgentHub Workflows
 
-Antfarm CLI (always use full path to avoid PATH issues):
+AgentHub CLI (always use full path to avoid PATH issues):
 \`${CLI}\`
 
 Commands:
@@ -24,7 +24,7 @@ ${WORKFLOW_BLOCK_END}
 `;
 
 const AGENTS_BLOCK = `${WORKFLOW_BLOCK_START}
-# Antfarm Workflow Policy
+# AgentHub Workflow Policy
 
 ## Installing Workflows
 Run: \`${CLI} workflow install <name>\`

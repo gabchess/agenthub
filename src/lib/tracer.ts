@@ -47,7 +47,7 @@ function getTracePath(runId: string): string {
   return path.join(
     homeDir,
     ".openclaw",
-    "antfarm",
+    "agenthub",
     "state",
     runId,
     "traces",

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Bundled workflows ship with antfarm (in the repo's workflows/ directory)
+// Bundled workflows ship with agenthub (in the repo's workflows/ directory)
 export function resolveBundledWorkflowsDir(): string {
   // From dist/installer/paths.js -> ../../workflows
   return path.resolve(__dirname, "..", "..", "workflows");
@@ -30,12 +30,12 @@ export function resolveOpenClawConfigPath(): string {
   return path.join(resolveOpenClawStateDir(), "openclaw.json");
 }
 
-export function resolveAntfarmRoot(): string {
-  return path.join(resolveOpenClawStateDir(), "antfarm");
+export function resolveAgentHubRoot(): string {
+  return path.join(resolveOpenClawStateDir(), "agenthub");
 }
 
 export function resolveWorkflowRoot(): string {
-  return path.join(resolveAntfarmRoot(), "workflows");
+  return path.join(resolveAgentHubRoot(), "workflows");
 }
 
 export function resolveWorkflowDir(workflowId: string): string {
@@ -51,10 +51,10 @@ export function resolveWorkflowWorkspaceDir(workflowId: string): string {
 }
 
 export function resolveRunRoot(): string {
-  return path.join(resolveAntfarmRoot(), "runs");
+  return path.join(resolveAgentHubRoot(), "runs");
 }
 
-export function resolveAntfarmCli(): string {
+export function resolveAgentHubCli(): string {
   // From dist/installer/paths.js -> ../../dist/cli/cli.js
   return path.resolve(__dirname, "..", "cli", "cli.js");
 }

@@ -22,7 +22,7 @@ describe("Tracer Module", () => {
   const testTracePath = path.join(
     os.homedir(),
     ".openclaw",
-    "antfarm",
+    "agenthub",
     "state",
     testRunId,
     "traces",
@@ -241,7 +241,7 @@ describe("Tracer Module", () => {
     const testTracePath2 = path.join(
       os.homedir(),
       ".openclaw",
-      "antfarm",
+      "agenthub",
       "state",
       testRunId2,
       "traces",
@@ -278,7 +278,7 @@ describe("Tracer Module", () => {
     const testTracePath3 = path.join(
       os.homedir(),
       ".openclaw",
-      "antfarm",
+      "agenthub",
       "state",
       testRunId3,
       "traces",

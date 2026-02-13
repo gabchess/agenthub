@@ -6,11 +6,11 @@ try {
 } catch {
   console.error(
     `Error: node:sqlite is not available.\n\n` +
-    `Antfarm requires Node.js >= 22 with native SQLite support.\n` +
+    `AgentHub requires Node.js >= 22 with native SQLite support.\n` +
     `If you have Bun installed, its \`node\` wrapper does not support node:sqlite via ESM.\n\n` +
     `Fix: ensure the real Node.js 22+ is first on your PATH.\n` +
     `  Check: node -e "require('node:sqlite')"\n` +
-    `  See: https://github.com/snarktank/antfarm/issues/54`
+    `  See: https://github.com/snarktank/agenthub/issues/54`
   );
   process.exit(1);
 }
@@ -21,7 +21,7 @@ import { getWorkflowStatus, listRuns } from "../installer/status.js";
 import { runWorkflow } from "../installer/run.js";
 import { listBundledWorkflows } from "../installer/workflow-fetch.js";
 import { readRecentLogs } from "../lib/logger.js";
-import { getRecentEvents, getRunEvents, type AntfarmEvent } from "../installer/events.js";
+import { getRecentEvents, getRunEvents, type AgentHubEvent } from "../installer/events.js";
 import { startDaemon, stopDaemon, getDaemonStatus, isRunning } from "../server/daemonctl.js";
 import { claimStep, completeStep, failStep, getStories } from "../installer/step-ops.js";
 import { ensureCliSymlink } from "../installer/symlink.js";
@@ -48,7 +48,7 @@ function formatEventTime(ts: string): string {
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
 }
 
-function formatEventLabel(evt: AntfarmEvent): string {
+function formatEventLabel(evt: AgentHubEvent): string {
   const labels: Record<string, string> = {
     "run.started": "Run started",
     "run.completed": "Run completed",
@@ -68,8 +68,36 @@ function formatEventLabel(evt: AntfarmEvent): string {
   return labels[evt.event] ?? evt.event;
 }
 
-function printEvents(events: AntfarmEvent[]): void {
+function printEvents(events: AgentHubEvent[]): void {
   if (events.length === 0) { console.log("No events yet."); return; }
+
+  const colors = {
+    reset: '\x1b[0m',
+    green: '\x1b[32m',
+    red: '\x1b[31m',
+    yellow: '\x1b[33m',
+    cyan: '\x1b[36m',
+    dim: '\x1b[2m',
+    bold: '\x1b[1m',
+  };
+
+  const eventColors: Record<string, string> = {
+    "run.started": colors.cyan,
+    "run.completed": colors.green,
+    "run.failed": colors.red,
+    "step.pending": colors.dim,
+    "step.running": colors.cyan,
+    "step.done": colors.green,
+    "step.failed": colors.red,
+    "step.timeout": colors.yellow,
+    "story.started": colors.cyan,
+    "story.done": colors.green,
+    "story.verified": colors.green,
+    "story.retry": colors.yellow,
+    "story.failed": colors.red,
+    "pipeline.advanced": colors.dim,
+  };
+
   for (const evt of events) {
     const time = formatEventTime(evt.ts);
     const agent = evt.agentId ? `  ${evt.agentId.split("/").pop()}` : "";
@@ -77,39 +105,42 @@ function printEvents(events: AntfarmEvent[]): void {
     const story = evt.storyTitle ? ` — ${evt.storyTitle}` : "";
     const detail = evt.detail ? ` (${evt.detail})` : "";
     const run = evt.runId ? `  [${evt.runId.slice(0, 8)}]` : "";
-    console.log(`${time}${run}${agent}  ${label}${story}${detail}`);
+    const color = eventColors[evt.event] || colors.reset;
+    console.log(`${colors.dim}${time}${colors.reset}${colors.dim}${run}${colors.reset}${colors.cyan}${agent}${colors.reset}  ${color}${label}${colors.reset}${story}${detail}`);
   }
 }
 
 function printUsage() {
   process.stdout.write(
     [
-      "antfarm install                      Install all bundled workflows",
-      "antfarm uninstall [--force]          Full uninstall (workflows, agents, crons, DB)",
+      "agenthub install                      Install all bundled workflows",
+      "agenthub uninstall [--force]          Full uninstall (workflows, agents, crons, DB)",
       "",
-      "antfarm workflow list                List available workflows",
-      "antfarm workflow install <name>      Install a workflow",
-      "antfarm workflow uninstall <name>    Uninstall a workflow (blocked if runs active)",
-      "antfarm workflow uninstall --all     Uninstall all workflows (--force to override)",
-      "antfarm workflow run <name> <task>   Start a workflow run",
-      "antfarm workflow status <query>      Check run status (task substring, run ID prefix)",
-      "antfarm workflow runs                List all workflow runs",
-      "antfarm workflow resume <run-id>     Resume a failed run from where it left off",
+      "agenthub workflow list                List available workflows",
+      "agenthub workflow install <name>      Install a workflow",
+      "agenthub workflow uninstall <name>    Uninstall a workflow (blocked if runs active)",
+      "agenthub workflow uninstall --all     Uninstall all workflows (--force to override)",
+      "agenthub workflow run <name> <task>   Start a workflow run",
+      "agenthub workflow status <query>      Check run status (task substring, run ID prefix)",
+      "agenthub workflow runs                List all workflow runs",
+      "agenthub workflow resume <run-id>     Resume a failed run from where it left off",
       "",
-      "antfarm dashboard [start] [--port N]   Start dashboard daemon (default: 3333)",
-      "antfarm dashboard stop                  Stop dashboard daemon",
-      "antfarm dashboard status                Check dashboard status",
+      "agenthub dashboard [start] [--port N]   Start dashboard daemon (default: 3333)",
+      "agenthub dashboard stop                  Stop dashboard daemon",
+      "agenthub dashboard status                Check dashboard status",
       "",
-      "antfarm step claim <agent-id>       Claim pending step, output resolved input as JSON",
-      "antfarm step complete <step-id>      Complete step (reads output from stdin)",
-      "antfarm step fail <step-id> <error>  Fail step with retry logic",
-      "antfarm step stories <run-id>       List stories for a run",
+      "agenthub step claim <agent-id>       Claim pending step, output resolved input as JSON",
+      "agenthub step complete <step-id>      Complete step (reads output from stdin)",
+      "agenthub step fail <step-id> <error>  Fail step with retry logic",
+      "agenthub step stories <run-id>       List stories for a run",
       "",
-      "antfarm logs [<lines>]               Show recent activity (from events)",
-      "antfarm logs <run-id>                Show activity for a specific run",
+      "agenthub logs [<lines>]               Show recent activity (from events)",
+      "agenthub logs <run-id>                Show activity for a specific run",
       "",
-      "antfarm version                      Show installed version",
-      "antfarm update                       Pull latest, rebuild, and reinstall workflows",
+      "agenthub cost <run-id>               Show token usage and estimated cost",
+      "",
+      "agenthub version                      Show installed version",
+      "agenthub update                       Pull latest, rebuild, and reinstall workflows",
     ].join("\n") + "\n",
   );
 }
@@ -119,7 +150,7 @@ async function main() {
   const [group, action, target] = args;
 
   if (group === "version" || group === "--version" || group === "-v") {
-    console.log(`antfarm v${getVersion()}`);
+    console.log(`agenthub v${getVersion()}`);
     return;
   }
 
@@ -135,7 +166,7 @@ async function main() {
     try {
       execSync("git pull", { cwd: repoRoot, stdio: "inherit" });
     } catch {
-      process.stderr.write("Failed to git pull. Are you in the antfarm repo?\n");
+      process.stderr.write("Failed to git pull. Are you in the agenthub repo?\n");
       process.exit(1);
     }
     console.log("Installing dependencies...");
@@ -180,7 +211,7 @@ async function main() {
     }
 
     await uninstallAllWorkflows();
-    console.log("Antfarm fully uninstalled (workflows, agents, crons, database, skill).");
+    console.log("AgentHub fully uninstalled (workflows, agents, crons, database, skill).");
     return;
   }
 
@@ -198,7 +229,7 @@ async function main() {
       }
     }
     ensureCliSymlink();
-    console.log(`\nDone. Start a workflow with: antfarm workflow run <name> "your task"`);
+    console.log(`\nDone. Start a workflow with: agenthub workflow run <name> "your task"`);
 
     // Auto-start dashboard if not already running
     if (!isRunning().running) {
@@ -242,7 +273,7 @@ async function main() {
     if (portIdx !== -1 && args[portIdx + 1]) {
       port = parseInt(args[portIdx + 1], 10) || 3333;
     } else if (sub && sub !== "start" && !sub.startsWith("-")) {
-      // legacy: antfarm dashboard 4000
+      // legacy: agenthub dashboard 4000
       const parsed = parseInt(sub, 10);
       if (!Number.isNaN(parsed)) port = parsed;
     }
@@ -327,6 +358,55 @@ async function main() {
     return;
   }
 
+  if (group === "cost") {
+    const runId = args[1];
+    if (!runId) { process.stderr.write("Usage: agenthub cost <run-id>\n"); process.exit(1); }
+    const db = (await import("../db.js")).getDb();
+
+    // Find run (support prefix match)
+    const run = db.prepare(
+      "SELECT id FROM runs WHERE id = ? OR id LIKE ?"
+    ).get(runId, `${runId}%`) as { id: string } | undefined;
+
+    if (!run) { process.stderr.write(`Run not found: ${runId}\n`); process.exit(1); }
+
+    const traces = db.prepare(
+      "SELECT model, input_tokens, output_tokens FROM execution_traces WHERE run_id = ? AND (input_tokens > 0 OR output_tokens > 0)"
+    ).all(run.id) as { model: string | null; input_tokens: number; output_tokens: number }[];
+
+    if (traces.length === 0) { console.log("No token usage recorded for this run."); return; }
+
+    const rates: Record<string, { input: number; output: number }> = {
+      sonnet: { input: 3, output: 15 },
+      haiku: { input: 0.25, output: 1.25 },
+      opus: { input: 15, output: 75 },
+    };
+
+    let totalInput = 0, totalOutput = 0, totalCost = 0;
+    const byModel: Record<string, { input: number; output: number; cost: number }> = {};
+
+    for (const t of traces) {
+      const model = t.model || 'unknown';
+      const rate = rates[model] || rates.sonnet;
+      const cost = (t.input_tokens * rate.input + t.output_tokens * rate.output) / 1_000_000;
+      totalInput += t.input_tokens;
+      totalOutput += t.output_tokens;
+      totalCost += cost;
+      if (!byModel[model]) byModel[model] = { input: 0, output: 0, cost: 0 };
+      byModel[model].input += t.input_tokens;
+      byModel[model].output += t.output_tokens;
+      byModel[model].cost += cost;
+    }
+
+    console.log(`Cost for run ${run.id.slice(0, 8)}:`);
+    console.log(`  Tokens: ${totalInput.toLocaleString()} in / ${totalOutput.toLocaleString()} out`);
+    for (const [model, data] of Object.entries(byModel)) {
+      console.log(`  ${model}: ${data.input.toLocaleString()} in / ${data.output.toLocaleString()} out = $${data.cost.toFixed(4)}`);
+    }
+    console.log(`  Total: $${totalCost.toFixed(4)}`);
+    return;
+  }
+
   if (args.length < 2) { printUsage(); process.exit(1); }
   if (group !== "workflow") { printUsage(); process.exit(1); }
 
@@ -354,7 +434,7 @@ async function main() {
   if (action === "install") {
     const result = await installWorkflow({ workflowId: target });
     process.stdout.write(`Installed workflow: ${result.workflowId}\nAgent crons will start when a run begins.\n`);
-    process.stdout.write(`\nStart with: antfarm workflow run ${result.workflowId} "your task"\n`);
+    process.stdout.write(`\nStart with: agenthub workflow run ${result.workflowId} "your task"\n`);
     return;
   }
 

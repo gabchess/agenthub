@@ -1,7 +1,7 @@
 /**
  * Pipeline configuration loader.
  *
- * Loads from ~/.openclaw/antfarm/pipeline.yml with sensible defaults.
+ * Loads from ~/.openclaw/agenthub/pipeline.yml with sensible defaults.
  */
 
 import fs from 'node:fs';
@@ -11,7 +11,7 @@ import YAML from 'yaml';
 
 import type { PipelineConfig } from './types.js';
 
-const CONFIG_PATH = path.join(os.homedir(), '.openclaw', 'antfarm', 'pipeline.yml');
+const CONFIG_PATH = path.join(os.homedir(), '.openclaw', 'agenthub', 'pipeline.yml');
 
 const DEFAULT_CONFIG: PipelineConfig = {
   blocks: {

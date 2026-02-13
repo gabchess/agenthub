@@ -5,6 +5,29 @@ import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 import { API_BASE } from "@/lib/api";
 import { NAV_ITEMS } from "@/lib/constants";
+import { usePipelineStatus } from "@/lib/hooks/use-pipeline-status";
+
+type PipelineHealth = "healthy" | "degraded" | "down" | "unknown";
+
+function usePipelineHealth(): PipelineHealth {
+  const { statuses, isLoading, error } = usePipelineStatus();
+
+  if (isLoading || error || !statuses || statuses.length === 0) return "unknown";
+
+  const running = statuses.filter((s: { status: string }) => s.status === "running").length;
+  const total = statuses.length;
+
+  if (running === total) return "healthy";
+  if (running > 0) return "degraded";
+  return "down";
+}
+
+const HEALTH_DOT_CLASSES: Record<PipelineHealth, string> = {
+  healthy: "bg-accent-green animate-pulse",
+  degraded: "bg-accent-amber",
+  down: "bg-accent-red",
+  unknown: "bg-gray-600",
+};
 
 const icons: Record<string, React.ReactNode> = {
   play: (
@@ -37,6 +60,7 @@ const icons: Record<string, React.ReactNode> = {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const pipelineHealth = usePipelineHealth();
 
   return (
     <aside className="w-56 h-screen bg-surface border-r border-border flex flex-col fixed left-0 top-0">
@@ -62,6 +86,7 @@ export function Sidebar() {
       <nav className="flex-1 p-3 space-y-1">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname.startsWith(item.href);
+          const isPipeline = item.label === "Pipeline";
           return (
             <Link
               key={item.href}
@@ -75,6 +100,14 @@ export function Sidebar() {
             >
               {icons[item.icon]}
               {item.label}
+              {isPipeline && (
+                <span
+                  className={clsx(
+                    "w-1.5 h-1.5 rounded-full ml-auto shrink-0",
+                    HEALTH_DOT_CLASSES[pipelineHealth]
+                  )}
+                />
+              )}
             </Link>
           );
         })}

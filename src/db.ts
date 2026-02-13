@@ -3,8 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 
-const DB_DIR = path.join(os.homedir(), ".openclaw", "antfarm");
-const DB_PATH = path.join(DB_DIR, "antfarm.db");
+const DB_DIR = path.join(os.homedir(), ".openclaw", "agenthub");
+const DB_PATH = path.join(DB_DIR, "agenthub.db");
 
 let _db: DatabaseSync | null = null;
 let _dbOpenedAt = 0;
@@ -165,6 +165,61 @@ function migrate(db: DatabaseSync): void {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_agent_state_run ON agent_state(run_id);
     CREATE INDEX IF NOT EXISTS idx_agent_state_namespace ON agent_state(namespace);
+  `);
+
+  // Agent XP system tables
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS agent_xp (
+      id TEXT PRIMARY KEY,
+      agent_archetype TEXT NOT NULL UNIQUE,
+      total_xp INTEGER DEFAULT 0,
+      level INTEGER DEFAULT 1,
+      level_name TEXT DEFAULT 'Rookie',
+      steps_completed INTEGER DEFAULT 0,
+      steps_failed INTEGER DEFAULT 0,
+      avg_duration_ms INTEGER DEFAULT 0,
+      total_input_tokens INTEGER DEFAULT 0,
+      total_output_tokens INTEGER DEFAULT 0,
+      success_rate INTEGER DEFAULT 0,
+      current_streak INTEGER DEFAULT 0,
+      best_streak INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS agent_xp_events (
+      id TEXT PRIMARY KEY,
+      agent_archetype TEXT NOT NULL,
+      run_id TEXT,
+      step_id TEXT,
+      event_type TEXT NOT NULL,
+      xp_delta INTEGER NOT NULL,
+      step_type TEXT,
+      difficulty_tier INTEGER,
+      duration_ms INTEGER,
+      input_tokens INTEGER,
+      output_tokens INTEGER,
+      was_retry BOOLEAN DEFAULT FALSE,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_xp_events_archetype ON agent_xp_events(agent_archetype);
+    CREATE INDEX IF NOT EXISTS idx_xp_events_run ON agent_xp_events(run_id);
+  `);
+
+  // Persistent memory across runs
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS agent_memory (
+      id TEXT PRIMARY KEY,
+      agent_archetype TEXT NOT NULL,
+      namespace TEXT NOT NULL DEFAULT 'default',
+      key TEXT NOT NULL,
+      value TEXT,
+      source_run_id TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(agent_archetype, namespace, key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_agent_memory_archetype ON agent_memory(agent_archetype);
   `);
 }
 
