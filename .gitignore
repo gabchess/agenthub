@@ -26,3 +26,4 @@ GUARDRAILS_PARALLEL_USAGE.md
 
 # Local state (stored in ~/.openclaw)
 .openclaw/
+.vercel

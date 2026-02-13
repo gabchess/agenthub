@@ -48,11 +48,18 @@ function loadWorkflows(): WorkflowDef[] {
   return results;
 }
 
+// Demo mode: only show these workflows in the dashboard
+const DEMO_WORKFLOWS = ["defi-sentinel", "token-monitor"];
+
 function getRuns(workflowId?: string): Array<RunInfo & { steps: StepInfo[] }> {
   const db = getDb();
-  const runs = workflowId
-    ? db.prepare("SELECT * FROM runs WHERE workflow_id = ? ORDER BY created_at DESC").all(workflowId) as RunInfo[]
-    : db.prepare("SELECT * FROM runs ORDER BY created_at DESC").all() as RunInfo[];
+  let runs: RunInfo[];
+  if (workflowId) {
+    runs = db.prepare("SELECT * FROM runs WHERE workflow_id = ? ORDER BY created_at DESC").all(workflowId) as RunInfo[];
+  } else {
+    const placeholders = DEMO_WORKFLOWS.map(() => "?").join(", ");
+    runs = db.prepare(`SELECT * FROM runs WHERE workflow_id IN (${placeholders}) ORDER BY created_at DESC`).all(...DEMO_WORKFLOWS) as RunInfo[];
+  }
   return runs.map((r) => {
     const steps = db.prepare("SELECT * FROM steps WHERE run_id = ? ORDER BY step_index ASC").all(r.id) as StepInfo[];
     return { ...r, steps };
