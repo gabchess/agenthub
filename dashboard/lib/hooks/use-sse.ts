@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { API_CONFIGURED } from "../api";
 
 type SSEStatus = "connecting" | "connected" | "disconnected";
 
@@ -27,6 +28,8 @@ export function useSSE(url: string) {
   }, []);
 
   useEffect(() => {
+    if (!API_CONFIGURED) return;
+
     const es = new EventSource(url);
     eventSourceRef.current = es;
     setStatus("connecting");
