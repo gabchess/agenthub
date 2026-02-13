@@ -323,6 +323,14 @@ export function claimStep(agentId: string): ClaimResult {
   const run = db.prepare("SELECT context FROM runs WHERE id = ?").get(step.run_id) as { context: string } | undefined;
   const context: Record<string, string> = run ? JSON.parse(run.context) : {};
 
+  // Inject previous step outputs as {{step_id.output}} for cross-step references
+  const completedSteps = db.prepare(
+    "SELECT step_id, output FROM steps WHERE run_id = ? AND status = 'done' AND output IS NOT NULL"
+  ).all(step.run_id) as { step_id: string; output: string }[];
+  for (const cs of completedSteps) {
+    context[`${cs.step_id}.output`] = cs.output;
+  }
+
   // T6: Loop step claim logic
   if (step.type === "loop") {
     const loopConfig: LoopConfig | null = step.loop_config ? JSON.parse(step.loop_config) : null;
