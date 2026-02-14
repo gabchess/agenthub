@@ -5,6 +5,7 @@ import type { Step, AgentRole } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { RoleBadge } from "@/components/ui/role-badge";
 import { clsx } from "clsx";
+import { formatDuration } from "@/lib/utils";
 
 function highlightKeyValueLines(text: string) {
   return text.split("\n").map((line, i) => {
@@ -24,12 +25,18 @@ function highlightKeyValueLines(text: string) {
 export function StepCard({ step, isActive, agentName, agentRole }: { step: Step; isActive?: boolean; agentName?: string; agentRole?: string }) {
   const [expanded, setExpanded] = useState(false);
 
+  const duration = step.updated_at && step.created_at
+    ? new Date(step.updated_at).getTime() - new Date(step.created_at).getTime()
+    : undefined;
+
   return (
     <div
       className={clsx(
         "bg-surface border rounded-lg p-3 transition-all",
         isActive
           ? "border-accent-green/30 glow-green"
+          : step.status === "failed"
+          ? "border-accent-red/20"
           : "border-border hover:border-border/80"
       )}
     >
@@ -41,6 +48,11 @@ export function StepCard({ step, isActive, agentName, agentRole }: { step: Step;
           <span className="text-gray-300 text-xs font-medium">
             {step.step_id}
           </span>
+          {duration && step.status === "done" && (
+            <span className="text-[10px] text-gray-600 font-mono">
+              {formatDuration(duration)}
+            </span>
+          )}
         </div>
         <StatusBadge status={step.status} variant="step" />
       </div>
@@ -72,6 +84,15 @@ export function StepCard({ step, isActive, agentName, agentRole }: { step: Step;
         </div>
       )}
 
+      {step.retry_count > 0 && (
+        <div className="flex items-center gap-2 text-[11px] mt-1">
+          <span className="text-gray-500">retries:</span>
+          <span className="text-accent-amber font-mono">
+            {step.retry_count}/{step.max_retries}
+          </span>
+        </div>
+      )}
+
       {step.output && (
         <div className="mt-2">
           {!expanded ? (
@@ -79,7 +100,7 @@ export function StepCard({ step, isActive, agentName, agentRole }: { step: Step;
               onClick={() => setExpanded(true)}
               className="w-full text-left group"
             >
-              <div className="bg-page/50 rounded p-2 text-xs text-gray-400 font-mono">
+              <div className="bg-page/50 rounded p-2 text-xs text-gray-400 font-mono border border-border/30">
                 {step.output.slice(0, 200)}
                 {step.output.length > 200 && (
                   <span className="text-accent-cyan ml-1 group-hover:underline">
@@ -96,7 +117,7 @@ export function StepCard({ step, isActive, agentName, agentRole }: { step: Step;
               >
                 collapse
               </button>
-              <pre className="bg-page/50 rounded p-2 text-xs text-gray-400 font-mono max-h-64 overflow-y-auto whitespace-pre-wrap break-words">
+              <pre className="bg-page/50 rounded p-2 text-xs text-gray-400 font-mono max-h-64 overflow-y-auto whitespace-pre-wrap break-words border border-border/30">
                 {highlightKeyValueLines(step.output)}
               </pre>
             </div>
