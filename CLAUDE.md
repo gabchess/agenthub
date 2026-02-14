@@ -41,12 +41,20 @@ Production-grade AI agent orchestration platform for Monad. Framework-agnostic, 
 - node:test for testing
 - Never swallow errors silently — log context + rethrow
 
+## Vercel Deployment
+- **Project:** `agenthub-dash` — this is the ONLY project. Never create new Vercel projects.
+- **Production URL:** https://agenthub-dash.vercel.app
+- **Before deploying:** Always run `npx vercel link --project agenthub-dash` from `dashboard/`
+- **Deploy command:** `npx vercel --prod --yes`
+- **Root directory:** `dashboard` (set in vercel.json)
+
 ## Don't Do
 - Don't use CommonJS require()
 - Don't store secrets in code (use .env)
 - Don't make wallet transactions without simulation first
 - Don't ignore TypeScript errors
 - Don't write agent logic tied to one model provider
+- Don't create new Vercel projects — always deploy to `agenthub-dash`
 
 ## Lessons Learned
 - After every correction: update this file

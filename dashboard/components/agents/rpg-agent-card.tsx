@@ -8,32 +8,32 @@ import type { AgentRole, Guardrail, AgentXp } from "@/lib/types";
 // RPG class mapping for roles
 const ROLE_CLASS: Record<string, { title: string; icon: string; color: string; accent: string; bgGradient: string; borderGlow: string }> = {
   analysis: {
-    title: "Mage",
-    icon: "\u{1F52E}",
+    title: "Analyzer",
+    icon: "/icons/analyzer.svg",
     color: "accent-purple",
     accent: "#a78bfa",
     bgGradient: "from-purple-950/40 via-surface to-surface",
     borderGlow: "hover:shadow-[0_0_25px_rgba(167,139,250,0.3)]",
   },
   coding: {
-    title: "Artificer",
-    icon: "\u{2699}\u{FE0F}",
+    title: "Executor",
+    icon: "/icons/executor.svg",
     color: "accent-green",
     accent: "#00ff88",
     bgGradient: "from-green-950/40 via-surface to-surface",
     borderGlow: "hover:shadow-[0_0_25px_rgba(0,255,136,0.3)]",
   },
   verification: {
-    title: "Paladin",
-    icon: "\u{1F6E1}\u{FE0F}",
+    title: "Guardian",
+    icon: "/icons/guardian.svg",
     color: "accent-amber",
     accent: "#ffb300",
     bgGradient: "from-amber-950/40 via-surface to-surface",
     borderGlow: "hover:shadow-[0_0_25px_rgba(255,179,0,0.3)]",
   },
   testing: {
-    title: "Alchemist",
-    icon: "\u{1F9EA}",
+    title: "Strategist",
+    icon: "/icons/strategist.svg",
     color: "accent-cyan",
     accent: "#00e5ff",
     bgGradient: "from-cyan-950/40 via-surface to-surface",
@@ -41,15 +41,15 @@ const ROLE_CLASS: Record<string, { title: string; icon: string; color: string; a
   },
   pr: {
     title: "Herald",
-    icon: "\u{1F4DC}",
+    icon: "/icons/strategist.svg",
     color: "gray-400",
     accent: "#9ca3af",
     bgGradient: "from-gray-900/40 via-surface to-surface",
     borderGlow: "hover:shadow-[0_0_15px_rgba(156,163,175,0.2)]",
   },
   scanning: {
-    title: "Ranger",
-    icon: "\u{1F3AF}",
+    title: "Scout",
+    icon: "/icons/scout.svg",
     color: "accent-red",
     accent: "#ff3d3d",
     bgGradient: "from-red-950/40 via-surface to-surface",
@@ -142,11 +142,15 @@ export function RpgAgentCard({
           background: `radial-gradient(circle at 50% 80%, ${accent}15 0%, transparent 60%)`,
         }} />
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-5xl select-none" style={{
-            filter: `drop-shadow(0 0 20px ${accent}40)`,
-          }}>
-            {icon}
-          </span>
+          <img
+            src={icon}
+            alt={title}
+            className="w-16 h-16 select-none"
+            style={{
+              imageRendering: "pixelated",
+              filter: `drop-shadow(0 0 20px ${accent}40)`,
+            }}
+          />
         </div>
         {/* Level orb - top left */}
         <div

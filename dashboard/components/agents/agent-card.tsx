@@ -9,12 +9,12 @@ import { LEVEL_THRESHOLDS } from "@/lib/constants";
 import type { AgentRole, Guardrail, AgentXp } from "@/lib/types";
 
 const ROLE_ICONS: Record<string, string> = {
-  analysis: "\u{1F50D}",
-  coding: "\u{1F4BB}",
-  verification: "\u{2705}",
-  testing: "\u{1F9EA}",
-  pr: "\u{1F4E4}",
-  scanning: "\u{1F6E1}",
+  analysis: "/icons/analyzer.svg",
+  coding: "/icons/executor.svg",
+  verification: "/icons/guardian.svg",
+  testing: "/icons/strategist.svg",
+  pr: "/icons/strategist.svg",
+  scanning: "/icons/scout.svg",
 };
 
 const ROLE_ACCENT: Record<string, string> = {
@@ -68,10 +68,15 @@ export function AgentCard({
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2.5">
           <div className={clsx(
-            "w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0",
+            "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 p-1.5",
             `bg-${accent}/10 border border-${accent}/30`
           )}>
-            {agent.role ? ROLE_ICONS[agent.role] || "\u{1F916}" : "\u{1F916}"}
+            <img
+              src={agent.role ? ROLE_ICONS[agent.role] || "/icons/executor.svg" : "/icons/executor.svg"}
+              alt={agent.role || "agent"}
+              className="w-full h-full"
+              style={{ imageRendering: "pixelated" }}
+            />
           </div>
           <div>
             <h3 className="text-sm font-medium text-gray-200">
