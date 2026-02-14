@@ -6,6 +6,9 @@ export type RunInfo = {
   task: string;
   status: string;
   context: string;
+  trace_hash: string | null;
+  trace_tx_hash: string | null;
+  trace_committed_at: string | null;
   created_at: string;
   updated_at: string;
 };

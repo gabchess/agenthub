@@ -152,6 +152,15 @@ function migrate(db: DatabaseSync): void {
   if (!runColNames.has("max_parallel_agents")) {
     db.exec("ALTER TABLE runs ADD COLUMN max_parallel_agents INTEGER");
   }
+  if (!runColNames.has("trace_hash")) {
+    db.exec("ALTER TABLE runs ADD COLUMN trace_hash TEXT");
+  }
+  if (!runColNames.has("trace_tx_hash")) {
+    db.exec("ALTER TABLE runs ADD COLUMN trace_tx_hash TEXT");
+  }
+  if (!runColNames.has("trace_committed_at")) {
+    db.exec("ALTER TABLE runs ADD COLUMN trace_committed_at TEXT");
+  }
 
   // Create indexes for execution_traces table
   db.exec(`

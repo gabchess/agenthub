@@ -12,6 +12,7 @@ import { getParallelStepForAgent, canClaimParallelStep, claimParallelStep } from
 import { loadAgentGuardrails, checkToolAllowed } from './guardrails.js';
 import { recordStepXp, recordStepFailure } from '../lib/xp.js';
 import { validateResolvedTemplate } from '../lib/context-validator.js';
+import { commitRunTraces } from '../chains/trace-commitment.js';
 import type { StepBriefing } from './types.js';
 
 /**
@@ -808,6 +809,12 @@ function advancePipeline(runId: string): { advanced: boolean; runCompleted: bool
     logger.info("Run completed", { runId, workflowId: wfId });
     archiveRunProgress(runId);
     scheduleRunCronTeardown(runId);
+
+    // Commit trace hash on-chain (fire-and-forget, never blocks run completion)
+    commitRunTraces(runId).catch((err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error(`Trace commitment failed (non-blocking): ${msg}`, { runId });
+    });
     return { advanced: false, runCompleted: true };
   }
 }
