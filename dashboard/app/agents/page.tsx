@@ -1,7 +1,12 @@
 "use client";
 
 import { AgentGrid } from "@/components/agents/agent-grid";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 export default function AgentsPage() {
-  return <AgentGrid />;
+  return (
+    <ErrorBoundary>
+      <AgentGrid />
+    </ErrorBoundary>
+  );
 }

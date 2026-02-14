@@ -33,6 +33,9 @@ export interface Run {
   notify_url?: string;
   parallel_execution_enabled?: boolean;
   max_parallel_agents?: number;
+  trace_hash?: string;
+  trace_tx_hash?: string;
+  trace_committed_at?: string;
   steps: Step[];
 }
 

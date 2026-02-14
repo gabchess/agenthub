@@ -5,6 +5,7 @@ import { useWorkflows } from "@/lib/hooks/use-workflows";
 import { RunsTable } from "@/components/runs/runs-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TableSkeleton } from "@/components/ui/skeleton";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useState } from "react";
 import { clsx } from "clsx";
 
@@ -50,17 +51,19 @@ export default function RunsPage() {
       )}
 
       {/* Runs list */}
-      <div className="bg-surface border border-border rounded-lg">
-        {isLoading ? (
-          <div className="p-4">
-            <TableSkeleton />
-          </div>
-        ) : runs.length === 0 ? (
-          <EmptyState message="No workflow runs found" />
-        ) : (
-          <RunsTable runs={runs} />
-        )}
-      </div>
+      <ErrorBoundary>
+        <div className="bg-surface border border-border rounded-lg">
+          {isLoading ? (
+            <div className="p-4">
+              <TableSkeleton />
+            </div>
+          ) : runs.length === 0 ? (
+            <EmptyState message="No workflow runs found. Start a workflow to see runs here." />
+          ) : (
+            <RunsTable runs={runs} />
+          )}
+        </div>
+      </ErrorBoundary>
     </div>
   );
 }

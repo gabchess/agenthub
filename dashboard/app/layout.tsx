@@ -3,6 +3,7 @@
 import "./globals.css";
 import { SWRConfig } from "swr";
 import { Shell } from "@/components/layout/shell";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 export default function RootLayout({
   children,
@@ -22,7 +23,9 @@ export default function RootLayout({
             shouldRetryOnError: false,
           }}
         >
-          <Shell>{children}</Shell>
+          <ErrorBoundary>
+            <Shell>{children}</Shell>
+          </ErrorBoundary>
         </SWRConfig>
       </body>
     </html>

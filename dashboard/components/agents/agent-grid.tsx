@@ -22,15 +22,26 @@ export function AgentGrid() {
   >();
 
   for (const wf of workflows) {
+    // Build a lookup from agent ID to agent metadata (name, role)
+    const wfAgentMeta = new Map(
+      (wf.agents ?? []).map((a) => [a.id, { name: a.name, role: a.role as AgentRole }])
+    );
+
     for (const step of wf.steps) {
       const existing = agentMap.get(step.agent);
+      const meta = wfAgentMeta.get(step.agent);
       if (existing) {
         if (!existing.stepsAssigned.includes(step.id)) {
           existing.stepsAssigned.push(step.id);
         }
+        // Fill in name/role if not already set
+        if (!existing.name && meta?.name) existing.name = meta.name;
+        if (!existing.role && meta?.role) existing.role = meta.role;
       } else {
         agentMap.set(step.agent, {
           id: step.agent,
+          name: meta?.name,
+          role: meta?.role,
           stepsAssigned: [step.id],
         });
       }

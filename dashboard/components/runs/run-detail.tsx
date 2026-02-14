@@ -98,6 +98,63 @@ export function RunDetail({ run }: { run: Run }) {
         </div>
       </div>
 
+      {/* Trace commitment */}
+      {run.trace_hash && (
+        <div className="bg-surface border border-accent-purple/30 rounded-lg p-4 glow-purple">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-accent-purple text-sm">&#9830;</span>
+            <h3 className="text-sm font-medium text-accent-purple">
+              On-Chain Trace Commitment
+            </h3>
+            <span className={clsx(
+              "ml-auto inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-[11px] font-medium uppercase tracking-wider",
+              run.trace_tx_hash
+                ? "text-accent-green bg-accent-green/10 border-accent-green/30"
+                : "text-accent-amber bg-accent-amber/10 border-accent-amber/30"
+            )}>
+              {run.trace_tx_hash ? "settled" : "hash only"}
+            </span>
+          </div>
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 w-20 shrink-0">Trace Hash</span>
+              <code className="text-accent-cyan font-mono bg-raised px-2 py-0.5 rounded text-[11px] truncate">
+                {run.trace_hash}
+              </code>
+            </div>
+            {run.trace_tx_hash && (
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 w-20 shrink-0">TX Hash</span>
+                <a
+                  href={`https://explorer.testnet.monad.xyz/tx/${run.trace_tx_hash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent-green font-mono bg-raised px-2 py-0.5 rounded text-[11px] truncate hover:text-accent-green/80 hover:underline transition-colors"
+                >
+                  {run.trace_tx_hash}
+                </a>
+                <a
+                  href={`https://explorer.testnet.monad.xyz/tx/${run.trace_tx_hash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent-green text-[10px] hover:underline shrink-0"
+                >
+                  View on Monad Explorer &#8599;
+                </a>
+              </div>
+            )}
+            {run.trace_committed_at && (
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 w-20 shrink-0">Committed</span>
+                <span className="text-gray-400 font-mono text-[11px]">
+                  {formatFullTimestamp(run.trace_committed_at)}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Stories */}
       <StoryProgress stories={stories} />
 

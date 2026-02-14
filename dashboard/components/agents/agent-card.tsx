@@ -8,6 +8,15 @@ import { GuardrailsSummary } from "./guardrails-summary";
 import { LEVEL_THRESHOLDS } from "@/lib/constants";
 import type { AgentRole, Guardrail, AgentXp } from "@/lib/types";
 
+const ROLE_ICONS: Record<string, string> = {
+  analysis: "\u{1F50D}",   // magnifying glass
+  coding: "\u{1F4BB}",     // laptop
+  verification: "\u{2705}", // check mark
+  testing: "\u{1F9EA}",    // test tube
+  pr: "\u{1F4E4}",         // outbox
+  scanning: "\u{1F6E1}",   // shield
+};
+
 interface AgentInfo {
   id: string;
   name?: string;
@@ -36,10 +45,23 @@ export function AgentCard({
     <GlowCard className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium text-gray-200">
-            {agent.name || agent.id}
-          </h3>
-          {xp && <LevelBadge level={xp.level} name={xp.level_name} />}
+          <div className={clsx(
+            "w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0",
+            agent.role === "analysis" && "bg-accent-cyan/10 border border-accent-cyan/30",
+            agent.role === "coding" && "bg-accent-green/10 border border-accent-green/30",
+            agent.role === "verification" && "bg-accent-amber/10 border border-accent-amber/30",
+            agent.role === "testing" && "bg-accent-purple/10 border border-accent-purple/30",
+            agent.role === "scanning" && "bg-accent-red/10 border border-accent-red/30",
+            !agent.role && "bg-gray-500/10 border border-gray-500/30"
+          )}>
+            {agent.role ? ROLE_ICONS[agent.role] || "\u{1F916}" : "\u{1F916}"}
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-200">
+              {agent.name || agent.id}
+            </h3>
+            {xp && <LevelBadge level={xp.level} name={xp.level_name} />}
+          </div>
         </div>
         {agent.role && <RoleBadge role={agent.role} />}
       </div>
