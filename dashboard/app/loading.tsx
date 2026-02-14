@@ -5,8 +5,9 @@ export default function Loading() {
         <div className="w-10 h-10 border-2 border-accent-green/20 rounded-full" />
         <div className="absolute inset-0 w-10 h-10 border-2 border-transparent border-t-accent-green rounded-full animate-spin" />
       </div>
-      <div className="text-accent-green font-mono text-sm flex items-center gap-1">
-        <span className="animate-pulse-slow">Loading</span>
+      <div className="text-gray-500 font-mono text-xs flex items-center gap-1">
+        <span className="text-accent-green">$</span>
+        <span className="animate-pulse-slow">loading</span>
         <span className="animate-pulse">...</span>
       </div>
     </div>

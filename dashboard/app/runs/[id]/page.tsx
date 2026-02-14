@@ -16,13 +16,17 @@ export default function RunDetailPage() {
   return (
     <div className="space-y-4">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs text-gray-500">
+      <nav className="flex items-center gap-2 text-xs text-gray-500">
+        <Link href="/" className="hover:text-gray-300 transition-colors">
+          Home
+        </Link>
+        <span className="text-gray-700">/</span>
         <Link href="/runs" className="hover:text-gray-300 transition-colors">
           Runs
         </Link>
-        <span className="text-gray-600">/</span>
+        <span className="text-gray-700">/</span>
         <span className="text-accent-green font-mono">{id.slice(0, 8)}</span>
-      </div>
+      </nav>
 
       <ErrorBoundary>
         {isLoading ? (
