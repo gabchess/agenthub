@@ -1,6 +1,7 @@
 import useSWR from "swr";
 import { POLL_RUNS_LIST } from "../constants";
-import { apiKey } from "../api";
+import { apiKey, API_CONFIGURED } from "../api";
+import { DEMO_RUNS } from "../demo-data";
 import type { Run } from "../types";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -13,10 +14,14 @@ export function useRuns(workflowId?: string) {
     { refreshInterval: POLL_RUNS_LIST }
   );
 
+  const fallback = workflowId
+    ? DEMO_RUNS.filter((r) => r.workflow_id === workflowId)
+    : DEMO_RUNS;
+
   return {
-    runs: data ?? [],
+    runs: data ?? (API_CONFIGURED ? [] : fallback),
     error,
-    isLoading,
+    isLoading: API_CONFIGURED ? isLoading : false,
     mutate,
   };
 }

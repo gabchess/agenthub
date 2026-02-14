@@ -1,6 +1,7 @@
 import useSWR from "swr";
 import { POLL_WORKFLOWS } from "../constants";
-import { apiKey } from "../api";
+import { apiKey, API_CONFIGURED } from "../api";
+import { DEMO_WORKFLOWS } from "../demo-data";
 import type { Workflow } from "../types";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -13,9 +14,9 @@ export function useWorkflows() {
   );
 
   return {
-    workflows: data ?? [],
+    workflows: data ?? (API_CONFIGURED ? [] : DEMO_WORKFLOWS),
     error,
-    isLoading,
+    isLoading: API_CONFIGURED ? isLoading : false,
     mutate,
   };
 }

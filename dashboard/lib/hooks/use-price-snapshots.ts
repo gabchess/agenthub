@@ -1,5 +1,6 @@
 import useSWR from "swr";
-import { apiKey } from "../api";
+import { apiKey, API_CONFIGURED } from "../api";
+import { DEMO_PRICES } from "../demo-data";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -11,9 +12,9 @@ export function usePriceSnapshots(limit = 100) {
   );
 
   return {
-    prices: data ?? [],
+    prices: data ?? (API_CONFIGURED ? [] : DEMO_PRICES),
     error,
-    isLoading,
+    isLoading: API_CONFIGURED ? isLoading : false,
     mutate,
   };
 }

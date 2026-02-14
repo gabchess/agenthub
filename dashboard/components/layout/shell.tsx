@@ -12,13 +12,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <Header />
         <main className="flex-1 p-6">
           {!API_CONFIGURED && (
-            <div className="mb-6 bg-surface border border-border rounded-lg p-6 text-center">
-              <p className="text-gray-400 text-sm">
-                No data available — connect to a local AgentHub instance
-              </p>
-              <p className="text-gray-600 text-xs mt-2 font-mono">
-                Set NEXT_PUBLIC_API_URL or run: agenthub dashboard start
-              </p>
+            <div className="mb-4 flex items-center gap-2 px-3 py-2 bg-accent-amber/5 border border-accent-amber/20 rounded-lg text-[11px] text-accent-amber/70 font-mono">
+              <span className="shrink-0">&#9679;</span>
+              <span>Demo mode — showing sample data. Set NEXT_PUBLIC_API_URL to connect to a live instance.</span>
             </div>
           )}
           {children}
