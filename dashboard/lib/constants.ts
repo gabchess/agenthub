@@ -85,6 +85,7 @@ export const LEVEL_THRESHOLDS = [0, 100, 500, 2000, 10000];
 
 // Navigation items
 export const NAV_ITEMS = [
+  { href: "/", label: "Home", icon: "home" },
   { href: "/runs", label: "Runs", icon: "play" },
   { href: "/agents", label: "Agents", icon: "users" },
   { href: "/traces", label: "Traces", icon: "activity" },

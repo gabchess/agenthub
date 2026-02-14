@@ -3,10 +3,12 @@
 import { usePathname } from "next/navigation";
 
 const pageTitles: Record<string, string> = {
+  "/": "Dashboard",
   "/runs": "Workflow Runs",
   "/agents": "Agent Cards",
   "/traces": "Execution Traces",
   "/wallets": "Wallet Monitor",
+  "/pipeline": "Pipeline Health",
 };
 
 export function Header() {
