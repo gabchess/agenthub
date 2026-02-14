@@ -136,19 +136,19 @@ export function RpgAgentCard({
       )}
     >
       {/* Card art frame */}
-      <div className="relative h-28 overflow-hidden">
+      <div className="group/art relative h-28 overflow-hidden">
         {/* Abstract role pattern */}
-        <div className="absolute inset-0" style={{
+        <div className="absolute inset-0 transition-all duration-500 group-hover/art:brightness-125" style={{
           background: `radial-gradient(circle at 50% 80%, ${accent}15 0%, transparent 60%)`,
         }} />
         <div className="absolute inset-0 flex items-center justify-center">
           <img
             src={icon}
             alt={title}
-            className="w-16 h-16 select-none"
+            className="w-16 h-16 select-none icon-enter icon-breathe"
             style={{
               imageRendering: "pixelated",
-              filter: `drop-shadow(0 0 20px ${accent}40)`,
+              filter: `drop-shadow(0 0 20px ${accent}40) drop-shadow(1px 0 0 rgba(0,0,0,0.5)) drop-shadow(-1px 0 0 rgba(0,0,0,0.5)) drop-shadow(0 1px 0 rgba(0,0,0,0.5)) drop-shadow(0 -1px 0 rgba(0,0,0,0.5)) drop-shadow(0 3px 4px rgba(0,0,0,0.4))`,
             }}
           />
         </div>

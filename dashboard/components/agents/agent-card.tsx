@@ -26,6 +26,15 @@ const ROLE_ACCENT: Record<string, string> = {
   scanning: "accent-red",
 };
 
+const ROLE_GLOW: Record<string, string> = {
+  analysis: "rgba(0,229,255,0.35)",
+  coding: "rgba(0,255,136,0.35)",
+  verification: "rgba(255,179,0,0.35)",
+  testing: "rgba(167,139,250,0.35)",
+  pr: "rgba(156,163,175,0.2)",
+  scanning: "rgba(255,61,61,0.35)",
+};
+
 interface AgentInfo {
   id: string;
   name?: string;
@@ -61,20 +70,24 @@ export function AgentCard({
   xp?: AgentXp;
 }) {
   const accent = agent.role ? ROLE_ACCENT[agent.role] || "gray-400" : "gray-400";
+  const glow = agent.role ? ROLE_GLOW[agent.role] || "transparent" : "transparent";
 
   return (
-    <GlowCard className="space-y-3 hover:border-border/80 transition-all">
+    <GlowCard className="group space-y-3 hover:border-border/80 transition-all">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2.5">
-          <div className={clsx(
-            "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 p-1.5",
-            `bg-${accent}/10 border border-${accent}/30`
-          )}>
+          <div
+            className={clsx(
+              "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 p-1.5 icon-glow-wrap",
+              `bg-${accent}/10 border border-${accent}/30`
+            )}
+            style={{ ["--icon-glow" as string]: glow }}
+          >
             <img
               src={agent.role ? ROLE_ICONS[agent.role] || "/icons/executor.svg" : "/icons/executor.svg"}
               alt={agent.role || "agent"}
-              className="w-full h-full"
+              className="w-full h-full icon-enter icon-breathe icon-pixel-outline"
               style={{ imageRendering: "pixelated" }}
             />
           </div>
