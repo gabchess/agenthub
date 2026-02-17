@@ -17,7 +17,7 @@ Production-grade AI agent orchestration platform for Monad. Framework-agnostic, 
 ## Core Design Principles
 1. **Filesystem as state** — /agents, /workflows, /traces, /wallets. Agents read/write files as their state layer.
 2. **Observable by default** — Every agent action logged with timestamp, inputs, outputs. 14 trace types.
-3. **Crypto-native primitives** — Wallet balance, DEX price feeds, contract reads, tx building are built-in tools.
+3. **Crypto-native primitives** — Wallet balance, DEX price feeds, contract reads, x402 micropayments (USDC on Base), tx building are built-in tools.
 4. **Framework-agnostic** — Works with any AI model. Infrastructure, not a framework.
 5. **Guardrails first** — Per-agent tool allowlists, spending caps, approval thresholds.
 
@@ -55,6 +55,15 @@ Production-grade AI agent orchestration platform for Monad. Framework-agnostic, 
 - Don't ignore TypeScript errors
 - Don't write agent logic tied to one model provider
 - Don't create new Vercel projects — always deploy to `agenthub-dash`
+
+## x402 Payment Integration
+- **What:** Agents can pay for x402-enabled APIs using USDC micropayments on Base
+- **Tool:** `x402_pay` in `src/chains/tools/x402-pay.ts`
+- **Dep:** `x402-fetch` wraps fetch with automatic 402 payment handling
+- **Env:** `X402_PRIVATE_KEY` (falls back to `MONAD_PRIVATE_KEY`), `X402_NETWORK` (default: `base-sepolia`)
+- **Guardrails:** Reuses `checkSpendingLimit()` from guardrails.ts + `maxPaymentUsd` per-request cap
+- **Dashboard:** x402 payments show with cyan badge in wallet page, spending summary in x402 section
+- **Docs:** See `docs/TOOLS.md` for full x402_pay documentation
 
 ## Lessons Learned
 - After every correction: update this file

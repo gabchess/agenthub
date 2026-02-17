@@ -6,6 +6,7 @@ import type { Trace } from "@/lib/types";
 
 export function WalletRow({ trace }: { trace: Trace }) {
   const data = parseJsonSafe(trace.data);
+  const isX402 = data.type === "x402";
 
   return (
     <tr className="border-b border-border/30 hover:bg-raised/30 transition-colors">
@@ -19,7 +20,14 @@ export function WalletRow({ trace }: { trace: Trace }) {
         {trace.agent_id || "—"}
       </td>
       <td className="py-2 px-3 text-gray-400 font-mono text-[11px]">
-        {data.value ? String(data.value) : "—"}
+        <span className="flex items-center gap-1.5">
+          {data.value ? String(data.value) : "—"}
+          {isX402 && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20">
+              x402
+            </span>
+          )}
+        </span>
       </td>
       <td className="py-2 px-3 text-gray-400 font-mono text-[11px]">
         {data.txHash ? truncateAddress(data.txHash as string) : "—"}

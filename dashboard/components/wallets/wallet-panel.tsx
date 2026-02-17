@@ -17,6 +17,20 @@ export function WalletPanel() {
     if (data.to) walletAddresses.add(data.to as string);
   }
 
+  // Compute x402 payment summary from traces
+  const x402Traces = walletTraces.filter((t) => {
+    const d = parseJsonSafe(t.data);
+    return d.type === "x402";
+  });
+  const x402Count = x402Traces.length;
+  const x402TotalSpent = x402Traces.reduce((sum, t) => {
+    const d = parseJsonSafe(t.data);
+    return sum + (typeof d.amount === "number" ? d.amount : 0);
+  }, 0);
+  const x402Network = x402Traces.length > 0
+    ? (parseJsonSafe(x402Traces[0].data).network as string) || "base-sepolia"
+    : "base-sepolia";
+
   return (
     <div className="space-y-6">
       {/* Wallet summary cards */}
@@ -44,6 +58,35 @@ export function WalletPanel() {
                 </GlowCard>
               );
             })}
+        </div>
+      )}
+
+      {/* x402 Payments section */}
+      {x402Count > 0 && (
+        <div>
+          <h3 className="text-sm font-medium text-gray-400 mb-3">
+            x402 Payments
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <GlowCard className="border-accent-cyan/20">
+              <div className="text-[11px] text-gray-500 mb-1">Payments</div>
+              <div className="text-lg font-mono text-accent-cyan">
+                {x402Count}
+              </div>
+            </GlowCard>
+            <GlowCard className="border-accent-cyan/20">
+              <div className="text-[11px] text-gray-500 mb-1">Spent</div>
+              <div className="text-lg font-mono text-accent-cyan">
+                ${x402TotalSpent.toFixed(2)}
+              </div>
+            </GlowCard>
+            <GlowCard className="border-accent-cyan/20">
+              <div className="text-[11px] text-gray-500 mb-1">Network</div>
+              <div className="text-lg font-mono text-accent-cyan capitalize">
+                {x402Network}
+              </div>
+            </GlowCard>
+          </div>
         </div>
       )}
 

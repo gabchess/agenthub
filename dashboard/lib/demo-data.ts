@@ -533,6 +533,46 @@ export const DEMO_WALLET_TRACES: Trace[] = [
       txHash: "0x3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b",
     }),
   }),
+  // x402 payment traces
+  makeTrace(104, ids.run1, "wallet.tx", "agenthub/scout", ids.step(1, 0), {
+    timestamp: ago(110 * MIN),
+    data: JSON.stringify({
+      type: "x402",
+      from: "0x1a2b3c4d5e6f7890abcdef1234567890abcdef12",
+      to: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+      value: "0.01 USDC",
+      asset: "USDC",
+      network: "base-sepolia",
+      url: "https://api.marketdata.io/v1/monad/prices",
+      amount: 0.01,
+    }),
+  }),
+  makeTrace(105, ids.run2, "wallet.tx", "agenthub/scout", ids.step(2, 0), {
+    timestamp: ago(14 * MIN),
+    data: JSON.stringify({
+      type: "x402",
+      from: "0x1a2b3c4d5e6f7890abcdef1234567890abcdef12",
+      to: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+      value: "0.02 USDC",
+      asset: "USDC",
+      network: "base-sepolia",
+      url: "https://api.marketdata.io/v1/monad/orderbook",
+      amount: 0.02,
+    }),
+  }),
+  makeTrace(106, ids.run1, "wallet.tx", "agenthub/analyst", ids.step(1, 1), {
+    timestamp: ago(95 * MIN),
+    data: JSON.stringify({
+      type: "x402",
+      from: "0x1a2b3c4d5e6f7890abcdef1234567890abcdef12",
+      to: "0xAb5801a7D398351b8bE11C439e05C5b3259aeC9B",
+      value: "0.05 USDC",
+      asset: "USDC",
+      network: "base-sepolia",
+      url: "https://api.defi-analytics.io/v2/signals",
+      amount: 0.05,
+    }),
+  }),
 ];
 
 // ---------------------------------------------------------------------------

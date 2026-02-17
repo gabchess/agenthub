@@ -19,12 +19,13 @@ import { getGlobalCache } from './cache.js';
 import { getWalletBalances } from './wallet-balance.js';
 import { getTokenPrices } from './token-price.js';
 import { readContract } from './contract-read.js';
+import { x402Pay } from './x402-pay.js';
 
 /**
  * Available tool names that can be invoked through the registry.
  * Each tool name corresponds to a specific blockchain operation.
  */
-export type ToolName = 'wallet_balance' | 'token_price' | 'contract_read';
+export type ToolName = 'wallet_balance' | 'token_price' | 'contract_read' | 'x402_pay';
 
 /**
  * Tool invocation request structure.
@@ -115,6 +116,10 @@ export async function invokeChainTool(
         };
       }
 
+      case 'x402_pay': {
+        return await x402Pay(invocation.args, cache);
+      }
+
       default: {
         // Handle unknown tool names
         return {
@@ -170,6 +175,12 @@ export {
   type ContractReadParams,
   type ContractReadResult,
 } from './contract-read.js';
+export {
+  x402Pay,
+  parseX402PayOutput,
+  type X402PayParams,
+  type X402PayResult,
+} from './x402-pay.js';
 
 // Re-export utilities
 export * from './cache.js';
